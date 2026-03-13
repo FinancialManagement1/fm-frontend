@@ -1,20 +1,22 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  View,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Modal,
-  FlatList,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../constants/theme";
+import { registerUser } from "../services/authService";
 
 // ── Country List ──
 const COUNTRIES = [
@@ -130,16 +132,58 @@ export default function SignupScreen() {
     email: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const filteredCountries = COUNTRIES.filter((c) =>
-    c.name.toLowerCase().includes(countrySearch.toLowerCase())
+    c.name.toLowerCase().includes(countrySearch.toLowerCase()),
   );
 
   const filteredCurrencies = CURRENCIES.filter(
     (c) =>
       c.name.toLowerCase().includes(currencySearch.toLowerCase()) ||
-      c.code.toLowerCase().includes(currencySearch.toLowerCase())
+      c.code.toLowerCase().includes(currencySearch.toLowerCase()),
   );
+
+  const handleSignup = async () => {
+    setError("");
+
+    const payload = {
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+      country: selectedCountry?.name || "",
+      preferredCurrency: selectedCurrency?.code || "",
+    };
+
+    if (
+      !payload.name ||
+      !payload.email ||
+      !payload.password ||
+      !payload.country ||
+      !payload.preferredCurrency
+    ) {
+      setError("Please fill in all fields, including country and currency.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await registerUser(payload);
+
+      Alert.alert(
+        "Success",
+        response.message || "User successfully registered",
+      );
+
+      router.push("/login");
+    } catch (err) {
+      setError(err.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -153,10 +197,12 @@ export default function SignupScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-
         {/* Header */}
         <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => router.back()}
+          >
             <Ionicons name="arrow-back" size={20} color={theme.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Create Account</Text>
@@ -171,9 +217,12 @@ export default function SignupScreen() {
 
         {/* Full Name */}
         <Text style={styles.label}>Full Name</Text>
-        <View style={[styles.inputRow, focused === "name" && styles.inputFocused]}>
+        <View
+          style={[styles.inputRow, focused === "name" && styles.inputFocused]}
+        >
           <Ionicons
-            name="person-outline" size={18}
+            name="person-outline"
+            size={18}
             color={focused === "name" ? theme.accent : theme.muted}
             style={styles.inputIcon}
           />
@@ -191,9 +240,12 @@ export default function SignupScreen() {
 
         {/* Email */}
         <Text style={styles.label}>Email</Text>
-        <View style={[styles.inputRow, focused === "email" && styles.inputFocused]}>
+        <View
+          style={[styles.inputRow, focused === "email" && styles.inputFocused]}
+        >
           <Ionicons
-            name="mail-outline" size={18}
+            name="mail-outline"
+            size={18}
             color={focused === "email" ? theme.accent : theme.muted}
             style={styles.inputIcon}
           />
@@ -212,9 +264,15 @@ export default function SignupScreen() {
 
         {/* Password */}
         <Text style={styles.label}>Password</Text>
-        <View style={[styles.inputRow, focused === "password" && styles.inputFocused]}>
+        <View
+          style={[
+            styles.inputRow,
+            focused === "password" && styles.inputFocused,
+          ]}
+        >
           <Ionicons
-            name="lock-closed-outline" size={18}
+            name="lock-closed-outline"
+            size={18}
             color={focused === "password" ? theme.accent : theme.muted}
             style={styles.inputIcon}
           />
@@ -238,7 +296,8 @@ export default function SignupScreen() {
           activeOpacity={0.8}
         >
           <Ionicons
-            name="globe-outline" size={18}
+            name="globe-outline"
+            size={18}
             color={countryPickerVisible ? theme.accent : theme.muted}
             style={styles.inputIcon}
           />
@@ -256,18 +315,24 @@ export default function SignupScreen() {
         {/* Currency Picker */}
         <Text style={styles.label}>Preferred Currency</Text>
         <TouchableOpacity
-          style={[styles.inputRow, currencyPickerVisible && styles.inputFocused]}
+          style={[
+            styles.inputRow,
+            currencyPickerVisible && styles.inputFocused,
+          ]}
           onPress={() => setCurrencyPickerVisible(true)}
           activeOpacity={0.8}
         >
           <Ionicons
-            name="logo-usd" size={18}
+            name="logo-usd"
+            size={18}
             color={currencyPickerVisible ? theme.accent : theme.muted}
             style={styles.inputIcon}
           />
           {selectedCurrency ? (
             <View style={styles.pickerValueRow}>
-              <Text style={styles.currencySymbolText}>{selectedCurrency.symbol}</Text>
+              <Text style={styles.currencySymbolText}>
+                {selectedCurrency.symbol}
+              </Text>
               <Text style={styles.pickerValueText}>
                 {selectedCurrency.code} — {selectedCurrency.name}
               </Text>
@@ -278,13 +343,18 @@ export default function SignupScreen() {
           <Ionicons name="chevron-down" size={16} color={theme.muted} />
         </TouchableOpacity>
 
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
         {/* Sign Up Button */}
         <TouchableOpacity
-          style={styles.btn}
+          style={[styles.btn, loading && styles.btnDisabled]}
           activeOpacity={0.85}
-          onPress={() => router.push("/login")}
+          onPress={handleSignup}
+          disabled={loading}
         >
-          <Text style={styles.btnText}>Sign up</Text>
+          <Text style={styles.btnText}>
+            {loading ? "Signing up..." : "Sign up"}
+          </Text>
         </TouchableOpacity>
 
         {/* Switch to Login */}
@@ -294,7 +364,6 @@ export default function SignupScreen() {
             <Text style={styles.switchLink}>Login</Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
 
       {/* ── Country Modal ── */}
@@ -320,7 +389,12 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.searchRow}>
-            <Ionicons name="search-outline" size={18} color={theme.muted} style={{ marginRight: 10 }} />
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={theme.muted}
+              style={{ marginRight: 10 }}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search country..."
@@ -339,7 +413,8 @@ export default function SignupScreen() {
               <TouchableOpacity
                 style={[
                   styles.listItem,
-                  selectedCountry?.code === item.code && styles.listItemSelected,
+                  selectedCountry?.code === item.code &&
+                    styles.listItemSelected,
                 ]}
                 onPress={() => {
                   setSelectedCountry(item);
@@ -348,15 +423,22 @@ export default function SignupScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <View style={[
-                  styles.flagCircle,
-                  selectedCountry?.code === item.code && styles.flagCircleSelected,
-                ]}>
+                <View
+                  style={[
+                    styles.flagCircle,
+                    selectedCountry?.code === item.code &&
+                      styles.flagCircleSelected,
+                  ]}
+                >
                   <Text style={styles.flagEmoji}>{item.flag}</Text>
                 </View>
                 <Text style={styles.listItemName}>{item.name}</Text>
                 {selectedCountry?.code === item.code && (
-                  <Ionicons name="checkmark-circle" size={22} color={theme.accent} />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={theme.accent}
+                  />
                 )}
               </TouchableOpacity>
             )}
@@ -387,7 +469,12 @@ export default function SignupScreen() {
           </View>
 
           <View style={styles.searchRow}>
-            <Ionicons name="search-outline" size={18} color={theme.muted} style={{ marginRight: 10 }} />
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={theme.muted}
+              style={{ marginRight: 10 }}
+            />
             <TextInput
               style={styles.searchInput}
               placeholder="Search currency..."
@@ -406,7 +493,8 @@ export default function SignupScreen() {
               <TouchableOpacity
                 style={[
                   styles.listItem,
-                  selectedCurrency?.code === item.code && styles.listItemSelected,
+                  selectedCurrency?.code === item.code &&
+                    styles.listItemSelected,
                 ]}
                 onPress={() => {
                   setSelectedCurrency(item);
@@ -415,14 +503,20 @@ export default function SignupScreen() {
                 }}
                 activeOpacity={0.7}
               >
-                <View style={[
-                  styles.symbolCircle,
-                  selectedCurrency?.code === item.code && styles.symbolCircleSelected,
-                ]}>
-                  <Text style={[
-                    styles.symbolText,
-                    selectedCurrency?.code === item.code && styles.symbolTextSelected,
-                  ]}>
+                <View
+                  style={[
+                    styles.symbolCircle,
+                    selectedCurrency?.code === item.code &&
+                      styles.symbolCircleSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.symbolText,
+                      selectedCurrency?.code === item.code &&
+                        styles.symbolTextSelected,
+                    ]}
+                  >
                     {item.symbol}
                   </Text>
                 </View>
@@ -431,14 +525,17 @@ export default function SignupScreen() {
                   <Text style={styles.currencyCode}>{item.code}</Text>
                 </View>
                 {selectedCurrency?.code === item.code && (
-                  <Ionicons name="checkmark-circle" size={22} color={theme.accent} />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={22}
+                    color={theme.accent}
+                  />
                 )}
               </TouchableOpacity>
             )}
           />
         </View>
       </Modal>
-
     </KeyboardAvoidingView>
   );
 }
@@ -557,6 +654,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
     letterSpacing: 0.3,
+  },
+  errorText: {
+    color: theme.error,
+    fontSize: 13,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  btnDisabled: {
+    opacity: 0.7,
   },
   switchRow: {
     flexDirection: "row",

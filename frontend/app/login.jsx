@@ -1,18 +1,20 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../constants/theme";
+import { loginUser } from "../services/authService";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,6 +23,43 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [emailFocused, setEmailFocused] = useState(false);
   const [passFocused, setPassFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async () => {
+    setError("");
+
+    if (!email || !password) {
+      setError("Please enter email and password.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      console.log("Login payload:", {
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      const response = await loginUser({
+        email: email.trim().toLowerCase(),
+        password: password,
+      });
+      console.log("Login response:", response);
+      
+      Alert.alert("Login Successful");
+
+      console.log("Token:", response.token);
+
+      // later this will go to dashboard
+      router.push("/dashboard");
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -34,7 +73,6 @@ export default function LoginScreen() {
         ]}
         keyboardShouldPersistTaps="handled"
       >
-
         {/* Wallet Icon */}
         <View style={styles.logoBox}>
           <Ionicons name="wallet" size={38} color="#1A0D00" />
@@ -48,13 +86,9 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={styles.form}>
-
           {/* Email */}
           <Text style={styles.label}>Email</Text>
-          <View style={[
-            styles.inputRow,
-            emailFocused && styles.inputFocused,
-          ]}>
+          <View style={[styles.inputRow, emailFocused && styles.inputFocused]}>
             <Ionicons
               name="mail-outline"
               size={18}
@@ -76,10 +110,7 @@ export default function LoginScreen() {
 
           {/* Password */}
           <Text style={styles.label}>Password</Text>
-          <View style={[
-            styles.inputRow,
-            passFocused && styles.inputFocused,
-          ]}>
+          <View style={[styles.inputRow, passFocused && styles.inputFocused]}>
             <Ionicons
               name="lock-closed-outline"
               size={18}
@@ -98,13 +129,18 @@ export default function LoginScreen() {
             />
           </View>
 
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
           {/* Login Button */}
           <TouchableOpacity
-            style={styles.btn}
+            style={[styles.btn, loading && styles.btnDisabled]}
             activeOpacity={0.85}
-            onPress={() => router.push("/signup")}
+            onPress={handleLogin}
+            disabled={loading}
           >
-            <Text style={styles.btnText}>Login</Text>
+            <Text style={styles.btnText}>
+              {loading ? "Logging in..." : "Login"}
+            </Text>
           </TouchableOpacity>
 
           {/* Switch to Signup */}
@@ -114,7 +150,6 @@ export default function LoginScreen() {
               <Text style={styles.switchLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
-
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -216,5 +251,14 @@ const styles = StyleSheet.create({
     color: theme.accent,
     fontWeight: "700",
     fontSize: 14,
+  },
+  errorText: {
+    color: theme.error,
+    fontSize: 13,
+    marginBottom: 10,
+  },
+
+  btnDisabled: {
+    opacity: 0.7,
   },
 });
