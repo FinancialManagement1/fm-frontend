@@ -1,20 +1,22 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+  Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
+import { useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { theme } from "../constants/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { loginUser } from "../services/authService";
+import { theme } from "../constants/theme";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -24,38 +26,21 @@ export default function LoginScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const [passFocused, setPassFocused] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async () => {
-    setError("");
-
     if (!email || !password) {
-      setError("Please enter email and password.");
+      Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
+    setLoading(true);
     try {
-      setLoading(true);
-
-      console.log("Login payload:", {
-        email: email.trim().toLowerCase(),
-        password,
-      });
-
-      const response = await loginUser({
-        email: email.trim().toLowerCase(),
-        password: password,
-      });
-      console.log("Login response:", response);
-      
-      Alert.alert("Login Successful");
-
-      console.log("Token:", response.token);
-
-      // later this will go to dashboard
-      router.push("/dashboard");
-    } catch (err) {
-      setError(err.message || "Login failed");
+      const data = await loginUser({ email, password });
+      await AsyncStorage.setItem("token", data.token);
+      router.replace("/(tabs)/dashboard");
+    } catch (error) {
+      Alert.alert("Login Failed", error.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }
@@ -69,10 +54,14 @@ export default function LoginScreen() {
       <ScrollView
         contentContainerStyle={[
           styles.container,
-          { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 40 },
+          {
+            paddingTop: insets.top + 40,
+            paddingBottom: insets.bottom + 40,
+          },
         ]}
         keyboardShouldPersistTaps="handled"
       >
+
         {/* Wallet Icon */}
         <View style={styles.logoBox}>
           <Ionicons name="wallet" size={38} color="#1A0D00" />
@@ -86,9 +75,13 @@ export default function LoginScreen() {
 
         {/* Form */}
         <View style={styles.form}>
+
           {/* Email */}
           <Text style={styles.label}>Email</Text>
-          <View style={[styles.inputRow, emailFocused && styles.inputFocused]}>
+          <View style={[
+            styles.inputRow,
+            emailFocused && styles.inputFocused,
+          ]}>
             <Ionicons
               name="mail-outline"
               size={18}
@@ -110,7 +103,10 @@ export default function LoginScreen() {
 
           {/* Password */}
           <Text style={styles.label}>Password</Text>
-          <View style={[styles.inputRow, passFocused && styles.inputFocused]}>
+          <View style={[
+            styles.inputRow,
+            passFocused && styles.inputFocused,
+          ]}>
             <Ionicons
               name="lock-closed-outline"
               size={18}
@@ -123,13 +119,21 @@ export default function LoginScreen() {
               placeholderTextColor={theme.muted}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
+              secureTextEntry={!showPassword}
               onFocus={() => setPassFocused(true)}
               onBlur={() => setPassFocused(false)}
             />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={styles.eyeBtn}
+            >
+              <Ionicons
+                name={showPassword ? "eye-outline" : "eye-off-outline"}
+                size={18}
+                color={theme.muted}
+              />
+            </TouchableOpacity>
           </View>
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           {/* Login Button */}
           <TouchableOpacity
@@ -138,9 +142,11 @@ export default function LoginScreen() {
             onPress={handleLogin}
             disabled={loading}
           >
-            <Text style={styles.btnText}>
-              {loading ? "Logging in..." : "Login"}
-            </Text>
+            {loading ? (
+              <ActivityIndicator color="#1A0D00" size="small" />
+            ) : (
+              <Text style={styles.btnText}>Login</Text>
+            )}
           </TouchableOpacity>
 
           {/* Switch to Signup */}
@@ -150,6 +156,7 @@ export default function LoginScreen() {
               <Text style={styles.switchLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
+
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -220,6 +227,10 @@ const styles = StyleSheet.create({
     color: theme.text,
     fontSize: 15,
   },
+  eyeBtn: {
+    padding: 4,
+    marginLeft: 8,
+  },
   btn: {
     backgroundColor: theme.accent,
     borderRadius: 16,
@@ -231,6 +242,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.45,
     shadowRadius: 14,
     elevation: 10,
+  },
+  btnDisabled: {
+    opacity: 0.7,
   },
   btnText: {
     color: "#1A0D00",
@@ -251,14 +265,5 @@ const styles = StyleSheet.create({
     color: theme.accent,
     fontWeight: "700",
     fontSize: 14,
-  },
-  errorText: {
-    color: theme.error,
-    fontSize: 13,
-    marginBottom: 10,
-  },
-
-  btnDisabled: {
-    opacity: 0.7,
   },
 });
