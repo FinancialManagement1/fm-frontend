@@ -6,7 +6,7 @@ describe("Auth Service Tests", () => {
   });
 
   test("loginUser returns token on success", async () => {
-    fetch.mockResponseOnce(JSON.stringify({ token: "fake-token" }));
+    fetch.mockResponseOnce(JSON.stringify({ token: "fake-token" }));//pretend backend replied with this JSON
 
     const result = await loginUser({
       email: "test@email.com",
