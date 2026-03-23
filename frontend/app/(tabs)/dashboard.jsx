@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -10,22 +11,23 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { API_BASE_URL } from "../../constants/api";
 import { theme } from "../../constants/theme";
 
 const MOCK_DATA = {
-  userName: "Alex",
+  userName: "User",
   currency: "EUR",
   period: "2026-03",
   summary: {
-    totalBalance: 1800,
-    income: 5000,
-    expenses: 3200,
+    totalBalance: 0,
+    income: 0,
+    expenses: 0,
   },
   monthlyBudget: {
-    spent: 3200,
+    spent: 0,
     limit: 5000,
-    remaining: 1800,
-    progressPercentage: 64,
+    remaining: 5000,
+    progressPercentage: 0,
   },
 };
 
@@ -76,8 +78,40 @@ function CircularProgress({ percentage }) {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [data] = useState(MOCK_DATA);
-  const [loading] = useState(false);
+  const [data, setData] = useState(MOCK_DATA);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
+
+  const fetchDashboard = async () => {
+    try {
+      const token = await AsyncStorage.getItem("token");
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_BASE_URL}/dashboard/summary`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setData(result);
+      }
+    } catch (error) {
+      console.error("Dashboard fetch error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const currencySymbol = data.currency === "EUR" ? "€" : "$";
 
@@ -130,7 +164,8 @@ export default function DashboardScreen() {
                 Total Balance
               </Text>
               <Text style={styles.balanceAmount} numberOfLines={1}>
-                {currencySymbol}{data.summary.totalBalance.toFixed(2)}
+                {currencySymbol}
+                {data.summary.totalBalance.toFixed(2)}
               </Text>
             </View>
           </View>
@@ -153,7 +188,8 @@ export default function DashboardScreen() {
               </View>
             </View>
             <Text style={[styles.statAmount, { color: theme.income }]}>
-              {currencySymbol}{data.summary.income.toFixed(2)}
+              {currencySymbol}
+              {data.summary.income.toFixed(2)}
             </Text>
             <View style={[styles.statBar, { backgroundColor: theme.income }]} />
           </View>
@@ -169,7 +205,8 @@ export default function DashboardScreen() {
               </View>
             </View>
             <Text style={[styles.statAmount, { color: theme.expense }]}>
-              {currencySymbol}{data.summary.expenses.toFixed(2)}
+              {currencySymbol}
+              {data.summary.expenses.toFixed(2)}
             </Text>
             <View style={[styles.statBar, { backgroundColor: theme.expense }]} />
           </View>
@@ -202,7 +239,8 @@ export default function DashboardScreen() {
           <Text style={styles.budgetRemaining}>
             Remaining:{" "}
             <Text style={{ color: theme.income, fontWeight: "700" }}>
-              {currencySymbol}{data.monthlyBudget.remaining.toFixed(2)}
+              {currencySymbol}
+              {data.monthlyBudget.remaining.toFixed(2)}
             </Text>
           </Text>
         </View>
