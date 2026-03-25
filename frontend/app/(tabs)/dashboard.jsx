@@ -1,15 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-  View,
-  Text,
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
+  Text,
   TouchableOpacity,
-  ActivityIndicator,
+  View,
 } from "react-native";
-import { useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { theme } from "../../constants/theme";
 
 const MOCK_DATA = {
@@ -35,38 +36,46 @@ function CircularProgress({ percentage }) {
   const safePercent = Math.min(Math.max(percentage, 0), 100);
 
   return (
-    <View style={{
-      width: size,
-      height: size,
-      alignItems: "center",
-      justifyContent: "center",
-    }}>
-      <View style={{
+    <View
+      style={{
         width: size,
         height: size,
-        borderRadius: size / 2,
-        borderWidth: strokeWidth,
-        borderColor: "#2A2A2A",
-        position: "absolute",
-      }} />
-      <View style={{
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        borderWidth: strokeWidth,
-        borderColor: "transparent",
-        borderTopColor: theme.income,
-        borderRightColor: safePercent > 25 ? theme.income : "transparent",
-        borderBottomColor: safePercent > 50 ? theme.income : "transparent",
-        borderLeftColor: safePercent > 75 ? theme.income : "transparent",
-        position: "absolute",
-        transform: [{ rotate: "-90deg" }],
-      }} />
-      <Text style={{
-        color: theme.text,
-        fontSize: 13,
-        fontWeight: "700",
-      }}>
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: strokeWidth,
+          borderColor: "#2A2A2A",
+          position: "absolute",
+        }}
+      />
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          borderWidth: strokeWidth,
+          borderColor: "transparent",
+          borderTopColor: theme.income,
+          borderRightColor: safePercent > 25 ? theme.income : "transparent",
+          borderBottomColor: safePercent > 50 ? theme.income : "transparent",
+          borderLeftColor: safePercent > 75 ? theme.income : "transparent",
+          position: "absolute",
+          transform: [{ rotate: "-90deg" }],
+        }}
+      />
+      <Text
+        style={{
+          color: theme.text,
+          fontSize: 13,
+          fontWeight: "700",
+        }}
+      >
         {safePercent}%
       </Text>
     </View>
@@ -76,17 +85,63 @@ function CircularProgress({ percentage }) {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [data] = useState(MOCK_DATA);
-  const [loading] = useState(false);
+  const [data, setData] = useState(MOCK_DATA);
+  const [loading, setLoading] = useState(true);
 
   const currencySymbol = data.currency === "EUR" ? "€" : "$";
 
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const token = await AsyncStorage.getItem("authToken");
+        console.log("TOKEN:", token); //confirm token is being retrieved correctly
+
+        if (!token) {
+          throw new Error("No auth token found");
+        }
+        const response = await fetch(
+          "https://api20260306101430-ejddbgc3ftfjbjes.francecentral-01.azurewebsites.net/dashboard/summary",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch dashboard");
+        }
+
+        const result = await response.json();
+        console.log("API RESULT:", result); //confirm api returned expected data
+
+        if (!result || !result.summary || !result.monthlyBudget) {
+          throw new Error("Invalid API response structure");
+        }
+
+        setData(result);
+      } catch (error) {
+        console.log("Dashboard fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
   if (loading) {
     return (
-      <View style={[styles.root, {
-        alignItems: "center",
-        justifyContent: "center",
-      }]}>
+      <View
+        style={[
+          styles.root,
+          {
+            alignItems: "center",
+            justifyContent: "center",
+          },
+        ]}
+      >
         <ActivityIndicator size="large" color={theme.accent} />
       </View>
     );
@@ -96,12 +151,8 @@ export default function DashboardScreen() {
     <View style={styles.root}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingTop: insets.top + 16 },
-        ]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16 }]}
       >
-
         {/* ── Header ── */}
         <View style={styles.header}>
           <View>
@@ -130,7 +181,8 @@ export default function DashboardScreen() {
                 Total Balance
               </Text>
               <Text style={styles.balanceAmount} numberOfLines={1}>
-                {currencySymbol}{data.summary.totalBalance.toFixed(2)}
+                {currencySymbol}
+                {data.summary.totalBalance.toFixed(2)}
               </Text>
             </View>
           </View>
@@ -141,19 +193,24 @@ export default function DashboardScreen() {
 
         {/* ── Income & Expenses Row ── */}
         <View style={styles.row}>
-
           {/* Income Card */}
           <View style={[styles.statCard, { borderColor: "#1A3D2B" }]}>
             <View style={styles.statHeader}>
               <Text style={styles.statLabel}>Income</Text>
-              <View style={[styles.statIconBtn, {
-                backgroundColor: "rgba(45,212,160,0.15)",
-              }]}>
+              <View
+                style={[
+                  styles.statIconBtn,
+                  {
+                    backgroundColor: "rgba(45,212,160,0.15)",
+                  },
+                ]}
+              >
                 <Ionicons name="arrow-up" size={16} color={theme.income} />
               </View>
             </View>
             <Text style={[styles.statAmount, { color: theme.income }]}>
-              {currencySymbol}{data.summary.income.toFixed(2)}
+              {currencySymbol}
+              {data.summary.income.toFixed(2)}
             </Text>
             <View style={[styles.statBar, { backgroundColor: theme.income }]} />
           </View>
@@ -162,18 +219,25 @@ export default function DashboardScreen() {
           <View style={[styles.statCard, { borderColor: "#3D1A1A" }]}>
             <View style={styles.statHeader}>
               <Text style={styles.statLabel}>Expenses</Text>
-              <View style={[styles.statIconBtn, {
-                backgroundColor: "rgba(255,107,107,0.15)",
-              }]}>
+              <View
+                style={[
+                  styles.statIconBtn,
+                  {
+                    backgroundColor: "rgba(255,107,107,0.15)",
+                  },
+                ]}
+              >
                 <Ionicons name="arrow-down" size={16} color={theme.expense} />
               </View>
             </View>
             <Text style={[styles.statAmount, { color: theme.expense }]}>
-              {currencySymbol}{data.summary.expenses.toFixed(2)}
+              {currencySymbol}
+              {data.summary.expenses.toFixed(2)}
             </Text>
-            <View style={[styles.statBar, { backgroundColor: theme.expense }]} />
+            <View
+              style={[styles.statBar, { backgroundColor: theme.expense }]}
+            />
           </View>
-
         </View>
 
         {/* ── Monthly Budget ── */}
@@ -181,8 +245,9 @@ export default function DashboardScreen() {
           <Text style={styles.budgetTitle}>Monthly Budget</Text>
           <View style={styles.budgetRow}>
             <Text style={styles.budgetAmount}>
-              {currencySymbol}{data.monthlyBudget.spent.toFixed(2)} /{" "}
-              {currencySymbol}{data.monthlyBudget.limit.toFixed(2)}
+              {currencySymbol}
+              {data.monthlyBudget.spent.toFixed(2)} / {currencySymbol}
+              {data.monthlyBudget.limit.toFixed(2)}
             </Text>
             <View style={styles.budgetPercentBadge}>
               <Text style={styles.budgetPercent}>
@@ -191,18 +256,24 @@ export default function DashboardScreen() {
             </View>
           </View>
           <View style={styles.progressBg}>
-            <View style={[styles.progressFill, {
-              width: `${Math.min(data.monthlyBudget.progressPercentage, 100)}%`,
-              backgroundColor:
-                data.monthlyBudget.progressPercentage > 80
-                  ? theme.expense
-                  : theme.accent,
-            }]} />
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${Math.min(data.monthlyBudget.progressPercentage, 100)}%`,
+                  backgroundColor:
+                    data.monthlyBudget.progressPercentage > 80
+                      ? theme.expense
+                      : theme.accent,
+                },
+              ]}
+            />
           </View>
           <Text style={styles.budgetRemaining}>
             Remaining:{" "}
             <Text style={{ color: theme.income, fontWeight: "700" }}>
-              {currencySymbol}{data.monthlyBudget.remaining.toFixed(2)}
+              {currencySymbol}
+              {data.monthlyBudget.remaining.toFixed(2)}
             </Text>
           </Text>
         </View>
@@ -213,7 +284,9 @@ export default function DashboardScreen() {
             style={[styles.actionBtn, { backgroundColor: "#0D2B1A" }]}
             activeOpacity={0.8}
           >
-            <View style={[styles.actionIcon, { backgroundColor: theme.income }]}>
+            <View
+              style={[styles.actionIcon, { backgroundColor: theme.income }]}
+            >
               <Ionicons name="arrow-up" size={20} color="#fff" />
             </View>
             <Text style={styles.actionText}>Add{"\n"}Income</Text>
@@ -223,13 +296,14 @@ export default function DashboardScreen() {
             style={[styles.actionBtn, { backgroundColor: "#2B0D0D" }]}
             activeOpacity={0.8}
           >
-            <View style={[styles.actionIcon, { backgroundColor: theme.expense }]}>
+            <View
+              style={[styles.actionIcon, { backgroundColor: theme.expense }]}
+            >
               <Ionicons name="arrow-down" size={20} color="#fff" />
             </View>
             <Text style={styles.actionText}>Add{"\n"}Expense</Text>
           </TouchableOpacity>
         </View>
-
       </ScrollView>
     </View>
   );

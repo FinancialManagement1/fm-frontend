@@ -1,4 +1,5 @@
 import { API_BASE_URL } from "../constants/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export async function registerUser(userData) {
   const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -31,6 +32,7 @@ export async function loginUser(credentials) {
 
   try {
     data = await response.json();
+    
   } catch {
     throw new Error("Invalid server response");
   }
@@ -38,6 +40,6 @@ export async function loginUser(credentials) {
   if (!response.ok) {
     throw new Error(data.message || "Login failed");
   }
-
+  await AsyncStorage.setItem("authToken", data.token);
   return data;
 }
