@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -12,6 +11,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../constants/theme";
+import { getDashboardSummary } from "../../services/dashboardService";
 
 const MOCK_DATA = {
   userName: "Pooja",
@@ -93,33 +93,7 @@ export default function DashboardScreen() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const token = await AsyncStorage.getItem("authToken");
-        console.log("TOKEN:", token); //confirm token is being retrieved correctly
-
-        if (!token) {
-          throw new Error("No auth token found");
-        }
-        const response = await fetch(
-          "https://api20260306101430-ejddbgc3ftfjbjes.francecentral-01.azurewebsites.net/dashboard/summary",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch dashboard");
-        }
-
-        const result = await response.json();
-        console.log("API RESULT:", result); //confirm api returned expected data
-
-        if (!result || !result.summary || !result.monthlyBudget) {
-          throw new Error("Invalid API response structure");
-        }
-
+        const result = await getDashboardSummary();
         setData(result);
       } catch (error) {
         console.log("Dashboard fetch error:", error);
