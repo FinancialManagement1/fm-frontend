@@ -14,19 +14,19 @@ import { theme } from "../../constants/theme";
 import { getDashboardSummary } from "../../services/dashboardService";
 
 const MOCK_DATA = {
-  userName: "Pooja",
+  userName: "User",
   currency: "EUR",
   period: "2026-03",
   summary: {
-    totalBalance: 1800,
-    income: 5000,
-    expenses: 3200,
+    totalBalance: 0,
+    income: 0,
+    expenses: 0,
   },
   monthlyBudget: {
-    spent: 3200,
+    spent: 0,
     limit: 5000,
-    remaining: 1800,
-    progressPercentage: 64,
+    remaining: 5000,
+    progressPercentage: 0,
   },
 };
 

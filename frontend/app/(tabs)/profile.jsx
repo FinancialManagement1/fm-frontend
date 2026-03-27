@@ -1,15 +1,16 @@
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
-  View,
+  Alert,
+  ScrollView,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useState, useEffect } from "react";
 import { theme } from "../../constants/theme";
 
 export default function ProfileScreen() {
@@ -17,9 +18,12 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(() => {
-    checkLogin();
-  }, []);
+  // ── Runs every time this tab is opened ──
+  useFocusEffect(
+    useCallback(() => {
+      checkLogin();
+    }, [])
+  );
 
   const checkLogin = async () => {
     const token = await AsyncStorage.getItem("token");
@@ -41,22 +45,58 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={[styles.root, { paddingTop: insets.top + 16 }]}>
-
+    <ScrollView
+      style={styles.root}
+      contentContainerStyle={[
+        styles.scroll,
+        {
+          paddingTop: insets.top + 16,
+          paddingBottom: insets.bottom + 20,
+        },
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>Profile</Text>
-      </View>
+      <Text style={styles.title}>Profile</Text>
 
       {isLoggedIn ? (
         // ── Logged In View ──
         <View style={styles.content}>
+
+          {/* Avatar */}
           <View style={styles.avatarBox}>
             <Ionicons name="person" size={40} color={theme.accent} />
           </View>
           <Text style={styles.userName}>Welcome back!</Text>
           <Text style={styles.userSub}>You are logged in</Text>
 
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Menu Items */}
+          {[
+            { icon: "person-outline", label: "Edit Profile" },
+            { icon: "notifications-outline", label: "Notifications" },
+            { icon: "shield-checkmark-outline", label: "Privacy & Security" },
+            { icon: "help-circle-outline", label: "Help & Support" },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              style={styles.menuItem}
+              activeOpacity={0.7}
+            >
+              <View style={styles.menuIconBox}>
+                <Ionicons name={item.icon} size={20} color={theme.accent} />
+              </View>
+              <Text style={styles.menuLabel}>{item.label}</Text>
+              <Ionicons name="chevron-forward" size={18} color={theme.muted} />
+            </TouchableOpacity>
+          ))}
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Logout Button */}
           <TouchableOpacity
             style={styles.logoutBtn}
             onPress={handleLogout}
@@ -65,6 +105,7 @@ export default function ProfileScreen() {
             <Ionicons name="log-out-outline" size={20} color={theme.expense} />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
+
         </View>
       ) : (
         // ── Not Logged In View ──
@@ -120,9 +161,10 @@ export default function ProfileScreen() {
               <Text style={styles.benefitText}>{item.text}</Text>
             </View>
           ))}
+
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -130,20 +172,20 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: theme.bg,
-    paddingHorizontal: 24,
   },
-  header: {
-    marginBottom: 24,
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: 24,
   },
   title: {
     color: theme.text,
     fontSize: 24,
     fontWeight: "800",
+    marginBottom: 24,
   },
   content: {
-    flex: 1,
     alignItems: "center",
-    paddingTop: 20,
+    width: "100%",
   },
   avatarBox: {
     width: 90,
@@ -154,7 +196,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 1,
     borderColor: theme.border,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   userName: {
     color: theme.text,
@@ -168,7 +210,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     lineHeight: 22,
-    marginBottom: 32,
+    marginBottom: 24,
   },
   loginBtn: {
     flexDirection: "row",
@@ -214,7 +256,7 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: theme.border,
     width: "100%",
-    marginVertical: 28,
+    marginVertical: 24,
   },
   benefitRow: {
     flexDirection: "row",
@@ -226,6 +268,29 @@ const styles = StyleSheet.create({
     color: theme.muted,
     fontSize: 14,
     fontWeight: "500",
+  },
+  menuItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+  },
+  menuIconBox: {
+    width: 36,
+    height: 36,
+    backgroundColor: "rgba(245,166,35,0.1)",
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 14,
+  },
+  menuLabel: {
+    color: theme.text,
+    fontSize: 15,
+    fontWeight: "600",
+    flex: 1,
   },
   logoutBtn: {
     flexDirection: "row",
@@ -239,7 +304,6 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderColor: "rgba(255,107,107,0.3)",
-    marginTop: 16,
   },
   logoutText: {
     color: theme.expense,
