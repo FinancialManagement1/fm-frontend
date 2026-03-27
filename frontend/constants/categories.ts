@@ -13,5 +13,5 @@ export const CATEGORIES: Category[] = [
   { icon: "medkit-outline",             bg: "#EC4899", label: "Health"        },
   { icon: "home-outline",               bg: "#14B8A6", label: "Housing"       },
   { icon: "game-controller-outline",    bg: "#F97316", label: "Entertainment" },
-  { icon: "ellipsis-horizontal-outline",bg: "#6B7280", label: "Other"         },
+  { icon: "ellipsis-horizontal-outline", bg: "#6B7280", label: "Other"         },
 ];

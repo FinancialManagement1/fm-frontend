@@ -1,3 +1,7 @@
+// ── Pooja's visual layer ──
+// Rule: This file owns only UI rendering. No CRUD logic, no transaction state
+// management, no computed summaries. All data and operations come from the hook.
+
 import {
   View,
   Text,
@@ -11,80 +15,34 @@ import {
   ScrollView,
   Alert,
 } from "react-native";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../constants/theme";
-
-// ── Sample Data ──
-const INITIAL_TRANSACTIONS = [
-  {
-    id: "1",
-    name: "Tuition",
-    amount: -500,
-    date: "Mar 5",
-    icon: "book-outline",
-    iconBg: "#3B82F6",
-    type: "expense",
-  },
-  {
-    id: "2",
-    name: "Loans",
-    amount: -500,
-    date: "Mar 4",
-    icon: "card-outline",
-    iconBg: "#EF4444",
-    type: "expense",
-  },
-  {
-    id: "3",
-    name: "Income",
-    amount: 5000,
-    date: "Mar 4",
-    icon: "trending-up-outline",
-    iconBg: "#10B981",
-    type: "income",
-  },
-  {
-    id: "4",
-    name: "Groceries",
-    amount: -2700,
-    date: "Mar 3",
-    icon: "cart-outline",
-    iconBg: "#8B5CF6",
-    type: "expense",
-  },
-];
-
-// ── Category Definitions ──
-const CATEGORIES = [
-  { icon: "trending-up-outline", bg: "#10B981", label: "Income" },
-  { icon: "cart-outline", bg: "#8B5CF6", label: "Shopping" },
-  { icon: "book-outline", bg: "#3B82F6", label: "Education" },
-  { icon: "card-outline", bg: "#EF4444", label: "Loans" },
-  { icon: "restaurant-outline", bg: "#F59E0B", label: "Food" },
-  { icon: "car-outline", bg: "#6366F1", label: "Transport" },
-  { icon: "medkit-outline", bg: "#EC4899", label: "Health" },
-  { icon: "home-outline", bg: "#14B8A6", label: "Housing" },
-  { icon: "game-controller-outline", bg: "#F97316", label: "Entertainment" },
-  { icon: "ellipsis-horizontal-outline", bg: "#6B7280", label: "Other" },
-];
-
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+import { useTransactions } from "../hooks/useTransactions";
+import { CATEGORIES } from "../constants/categories";
 
 export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
 
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
-  const [filter, setFilter] = useState("all");
-  const [search, setSearch] = useState("");
+  // ── Logic layer — Abir's hook ──
+  const {
+    filtered,
+    summary,
+    filter,
+    setFilter,
+    search,
+    setSearch,
+    addTransaction,
+    updateTransaction,
+    deleteTransaction,
+  } = useTransactions();
+
+  // ── UI-only state (Pooja owns these) ──
   const [modalVisible, setModalVisible] = useState(false);
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [formFocused, setFormFocused] = useState(null);
-  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const [form, setForm] = useState({
     name: "",
     amount: "",
@@ -92,40 +50,7 @@ export default function TransactionsScreen() {
     category: CATEGORIES[0],
   });
 
-  // ── Computed Summaries ──
-  const totalIncome = useMemo(
-    () =>
-      transactions
-        .filter((t) => t.type === "income")
-        .reduce((s, t) => s + t.amount, 0),
-    [transactions]
-  );
-  const totalExpenses = useMemo(
-    () =>
-      Math.abs(
-        transactions
-          .filter((t) => t.type === "expense")
-          .reduce((s, t) => s + t.amount, 0)
-      ),
-    [transactions]
-  );
-  const balance = totalIncome - totalExpenses;
-
-  // ── Filtered List ──
-  const filtered = useMemo(
-    () =>
-      transactions.filter((t) => {
-        const matchesFilter =
-          filter === "all" || t.type === filter;
-        const matchesSearch = t.name
-          .toLowerCase()
-          .includes(search.toLowerCase());
-        return matchesFilter && matchesSearch;
-      }),
-    [transactions, filter, search]
-  );
-
-  // ── Helpers ──
+  // ── UI helpers ──
   const resetForm = () => {
     setForm({ name: "", amount: "", type: "expense", category: CATEGORIES[0] });
     setEditingId(null);
@@ -157,8 +82,7 @@ export default function TransactionsScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () =>
-            setTransactions((prev) => prev.filter((t) => t.id !== id)),
+          onPress: () => deleteTransaction(id),
         },
       ]
     );
@@ -170,41 +94,25 @@ export default function TransactionsScreen() {
     const numericAmount = parseFloat(amount);
     if (isNaN(numericAmount) || numericAmount <= 0) return;
 
-    const now = new Date();
-    const dateStr = `${MONTHS[now.getMonth()]} ${now.getDate()}`;
+    const payload = {
+      name: name.trim(),
+      amount: numericAmount,
+      type,
+      icon: category.icon,
+      iconBg: category.bg,
+    };
 
     if (editingId) {
-      setTransactions((prev) =>
-        prev.map((t) =>
-          t.id === editingId
-            ? {
-                ...t,
-                name: name.trim(),
-                amount: type === "income" ? numericAmount : -numericAmount,
-                type,
-                icon: category.icon,
-                iconBg: category.bg,
-              }
-            : t
-        )
-      );
+      updateTransaction(editingId, payload);
     } else {
-      const newTxn = {
-        id: Date.now().toString(),
-        name: name.trim(),
-        amount: type === "income" ? numericAmount : -numericAmount,
-        date: dateStr,
-        icon: category.icon,
-        iconBg: category.bg,
-        type,
-      };
-      setTransactions((prev) => [newTxn, ...prev]);
+      addTransaction(payload);
     }
 
     setModalVisible(false);
     resetForm();
   };
 
+  // Pure display helper — formats an amount number for rendering
   const formatAmount = (amount) => {
     const abs = Math.abs(amount).toFixed(2);
     return amount >= 0 ? `+€${abs}` : `-€${abs}`;
@@ -273,7 +181,7 @@ export default function TransactionsScreen() {
             <Ionicons name="arrow-down" size={18} color={theme.expense} />
           </View>
           <Text style={[styles.cardAmount, { color: theme.expense }]}>
-            €{totalExpenses.toFixed(2)}
+            €{summary.totalExpenses.toFixed(2)}
           </Text>
           <Text style={styles.cardLabel}>Expenses</Text>
         </View>
@@ -283,7 +191,7 @@ export default function TransactionsScreen() {
             <Ionicons name="arrow-up" size={18} color={theme.income} />
           </View>
           <Text style={[styles.cardAmount, { color: theme.income }]}>
-            €{totalIncome.toFixed(2)}
+            €{summary.totalIncome.toFixed(2)}
           </Text>
           <Text style={styles.cardLabel}>Income</Text>
         </View>
@@ -293,7 +201,7 @@ export default function TransactionsScreen() {
             <Ionicons name="wallet-outline" size={18} color={theme.accent} />
           </View>
           <Text style={[styles.cardAmount, { color: theme.accent }]}>
-            €{balance.toFixed(2)}
+            €{summary.balance.toFixed(2)}
           </Text>
           <Text style={styles.cardLabel}>Balance</Text>
         </View>
