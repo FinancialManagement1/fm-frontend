@@ -24,36 +24,31 @@ const SummaryCard = ({ title, amount, type = 'neutral' }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F9FA',
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   title: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#6C757D',
     marginBottom: 4,
+    fontWeight: '500',
   },
   amount: {
     fontSize: 18,
     fontWeight: 'bold',
   },
   expenseAmount: {
-    color: '#EF4444',
+    color: '#DC3545',
   },
   incomeAmount: {
-    color: '#10B981',
+    color: '#28A745',
   },
   neutralAmount: {
-    color: '#111827',
+    color: '#212529',
   },
 });
 

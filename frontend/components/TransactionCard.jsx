@@ -26,18 +26,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     padding: 16,
-    marginBottom: 8,
+    marginBottom: 12,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
   },
   leftContent: {
     flexDirection: 'row',
@@ -51,22 +45,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#212529',
     marginBottom: 2,
   },
   date: {
     fontSize: 12,
-    color: '#6B7280',
+    color: '#6C757D',
   },
   amount: {
     fontSize: 16,
     fontWeight: '600',
   },
   incomeAmount: {
-    color: '#10B981',
+    color: '#28A745',
   },
   expenseAmount: {
-    color: '#EF4444',
+    color: '#DC3545',
   },
 });
 

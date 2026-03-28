@@ -7,8 +7,10 @@ import {
   SafeAreaView,
   ScrollView 
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 const CalendarScreen = () => {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const getDaysInMonth = (date) => {
@@ -27,39 +29,45 @@ const CalendarScreen = () => {
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
       days.push(
-        <View key={`empty-${i}`} style={styles.dayCell} />
+        <View key={`empty-${i}`} style={styles.emptyDayCell} />
       );
     }
     
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const hasTransaction = [5, 11, 12, 13, 14, 15].includes(day); // Mock transaction days
+      const isToday = day === new Date().getDate() && 
+                     currentDate.getMonth() === new Date().getMonth() && 
+                     currentDate.getFullYear() === new Date().getFullYear();
+      
       days.push(
         <TouchableOpacity
           key={day}
           style={[
             styles.dayCell,
-            hasTransaction && styles.hasTransactionDay
+            isToday && styles.todayCell,
+            hasTransaction && !isToday && styles.hasTransactionDay
           ]}
         >
           <Text style={[
             styles.dayText,
-            hasTransaction && styles.transactionDayText
+            isToday && styles.todayText,
+            hasTransaction && !isToday && styles.transactionDayText
           ]}>
             {day}
           </Text>
+          {hasTransaction && !isToday && (
+            <View style={styles.transactionDot}>
+              <View style={styles.dot} />
+            </View>
+          )}
         </TouchableOpacity>
       );
     }
     
     return days;
   };
-
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
+  
   const navigateMonth = (direction) => {
     const newDate = new Date(currentDate);
     if (direction === 'prev') {
@@ -70,19 +78,42 @@ const CalendarScreen = () => {
     setCurrentDate(newDate);
   };
 
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
+        {/* Header with Back Button */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.backButtonText}>←</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Calendar</Text>
+          <View style={styles.placeholder} />
+        </View>
+
         {/* Month Navigation */}
         <View style={styles.monthNavigation}>
-          <TouchableOpacity onPress={() => navigateMonth('prev')}>
-            <Text style={styles.navButton}>‹</Text>
+          <TouchableOpacity 
+            style={styles.navButton}
+            onPress={() => navigateMonth('prev')}
+          >
+            <Text style={styles.navButtonText}>‹</Text>
           </TouchableOpacity>
           <Text style={styles.monthYear}>
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </Text>
-          <TouchableOpacity onPress={() => navigateMonth('next')}>
-            <Text style={styles.navButton}>›</Text>
+          <TouchableOpacity 
+            style={styles.navButton}
+            onPress={() => navigateMonth('next')}
+          >
+            <Text style={styles.navButtonText}>›</Text>
           </TouchableOpacity>
         </View>
 
@@ -110,11 +141,11 @@ const CalendarScreen = () => {
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Spent:</Text>
-            <Text style={[styles.summaryValue, styles.expenseText]}>$4,350</Text>
+            <Text style={[styles.summaryValue, styles.expenseText]}>€4,350</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Income:</Text>
-            <Text style={[styles.summaryValue, styles.incomeText]}>$3,000</Text>
+            <Text style={[styles.summaryValue, styles.incomeText]}>€3,000</Text>
           </View>
         </View>
 
@@ -134,42 +165,74 @@ const CalendarScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#000000',
   },
   scrollView: {
     flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 48,
+    paddingBottom: 20,
+  },
+  
+  // Header with Back Button
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#18181b',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#27272a',
+  },
+  backButtonText: {
+    fontSize: 20,
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  placeholder: {
+    width: 40,
+  },
+  
+  calendarContainer: {
+    backgroundColor: 'rgba(251, 191, 36, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+    borderRadius: 16,
     padding: 16,
+    marginBottom: 20,
   },
   monthNavigation: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingHorizontal: 16,
+    marginBottom: 16,
   },
   monthYear: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#ffffff',
   },
   navButton: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#4F46E5',
-    paddingHorizontal: 16,
-  },
-  calendarContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#18181b',
+    padding: 8,
     borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+  },
+  navButtonText: {
+    fontSize: 18,
+    color: '#9ca3af',
+    fontWeight: 'bold',
   },
   dayHeaders: {
     flexDirection: 'row',
@@ -180,109 +243,128 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#9ca3af',
+    paddingVertical: 8,
   },
   calendarGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+  },
+  emptyDayCell: {
+    width: '14.28%',
+    aspectRatio: 1,
+    margin: 1,
   },
   dayCell: {
     width: '14.28%',
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 8,
+    margin: 1,
+    position: 'relative',
+    backgroundColor: 'rgba(24, 24, 27, 0.3)',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(39, 39, 42, 0.3)',
+  },
+  todayCell: {
+    backgroundColor: '#fbbf24',
+    borderColor: '#fbbf24',
   },
   hasTransactionDay: {
-    backgroundColor: '#EEF2FF',
-    borderColor: '#4F46E5',
+    backgroundColor: '#18181b',
+    borderColor: 'rgba(251, 191, 36, 0.3)',
   },
   dayText: {
     fontSize: 14,
-    color: '#374151',
+    fontWeight: '500',
+    color: '#ffffff',
+  },
+  todayText: {
+    color: '#000000',
+    fontWeight: 'bold',
   },
   transactionDayText: {
-    color: '#4F46E5',
+    color: '#ffffff',
     fontWeight: '600',
   },
+  transactionDot: {
+    position: 'absolute',
+    bottom: 4,
+    flexDirection: 'row',
+    gap: 2,
+  },
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#fbbf24',
+  },
   summaryContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#18181b',
+    borderWidth: 1,
+    borderColor: '#27272a',
+    borderRadius: 16,
     padding: 16,
-    marginTop: 24,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    marginBottom: 20,
   },
   summaryTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 12,
+    color: '#ffffff',
+    marginBottom: 16,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   summaryLabel: {
-    fontSize: 14,
-    color: '#6B7280',
+    fontSize: 15,
+    color: '#9ca3af',
+    fontWeight: '500',
   },
   summaryValue: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: '#ffffff',
   },
   expenseText: {
-    color: '#EF4444',
+    color: '#f87171',
   },
   incomeText: {
-    color: '#10B981',
+    color: '#4ade80',
   },
   legendContainer: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#18181b',
+    borderWidth: 1,
+    borderColor: '#27272a',
+    borderRadius: 16,
     padding: 16,
-    marginTop: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
   },
   legendTitle: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
-    marginBottom: 8,
+    color: '#ffffff',
+    marginBottom: 12,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   legendDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 12,
   },
   transactionDot: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#fbbf24',
   },
   legendText: {
-    fontSize: 12,
-    color: '#6B7280',
+    fontSize: 14,
+    color: '#9ca3af',
   },
 });
 
