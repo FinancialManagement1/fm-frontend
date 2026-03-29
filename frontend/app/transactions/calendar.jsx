@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -8,10 +8,17 @@ import {
   ScrollView 
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTransactions } from '../../hooks/useTransactions';
 
 const CalendarScreen = () => {
   const router = useRouter();
+  const { transactions, fetchTransactions } = useTransactions();
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Fetch transactions on mount
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
   
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -26,6 +33,12 @@ const CalendarScreen = () => {
     const firstDay = getFirstDayOfMonth(currentDate);
     const days = [];
     
+    // Helper to check if a day has transactions
+    const getDayTransactions = (day) => {
+      const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      return transactions.filter(t => t.date === dateStr);
+    };
+    
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
       days.push(
@@ -35,7 +48,11 @@ const CalendarScreen = () => {
     
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
-      const hasTransaction = [5, 11, 12, 13, 14, 15].includes(day); // Mock transaction days
+      const dayTransactions = getDayTransactions(day);
+      const hasTransaction = dayTransactions.length > 0;
+      const hasIncome = dayTransactions.some(t => t.type === 'income');
+      const hasExpense = dayTransactions.some(t => t.type === 'expense');
+      
       const isToday = day === new Date().getDate() && 
                      currentDate.getMonth() === new Date().getMonth() && 
                      currentDate.getFullYear() === new Date().getFullYear();
@@ -58,7 +75,8 @@ const CalendarScreen = () => {
           </Text>
           {hasTransaction && !isToday && (
             <View style={styles.transactionDot}>
-              <View style={styles.dot} />
+              {hasIncome && <View style={[styles.dot, styles.incomeDot]} />}
+              {hasExpense && <View style={[styles.dot, styles.expenseDot]} />}
             </View>
           )}
         </TouchableOpacity>
@@ -299,6 +317,12 @@ const styles = StyleSheet.create({
     height: 4,
     borderRadius: 2,
     backgroundColor: '#fbbf24',
+  },
+  incomeDot: {
+    backgroundColor: '#4ade80',
+  },
+  expenseDot: {
+    backgroundColor: '#f87171',
   },
   summaryContainer: {
     backgroundColor: '#18181b',
