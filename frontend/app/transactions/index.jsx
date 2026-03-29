@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -12,30 +12,51 @@ import {
 import { useTransactions } from '../../hooks/useTransactions';
 
 const TransactionsScreen = () => {
-  const { transactions, summary } = useTransactions();
+  const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction } = useTransactions();
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Fetch transactions on component mount
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  // Calculate summary from transactions
+  const summary = useMemo(() => {
+    const expenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    return {
+      totalExpenses: expenses,
+      totalIncome: income,
+      balance: income - expenses
+    };
+  }, [transactions]);
+
   const filteredTransactions = transactions.filter(transaction => {
     const matchesFilter = filter === 'all' || transaction.type === filter;
-    const matchesSearch = transaction.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
   const renderTransactionItem = ({ item }) => (
     <View style={styles.transactionItem}>
       <View style={styles.transactionLeft}>
-        <Text style={styles.transactionIcon}>{item.icon}</Text>
+        <Text style={styles.transactionIcon}>{item.category.charAt(0)}</Text>
         <View>
-          <Text style={styles.transactionTitle}>{item.title}</Text>
-          <Text style={styles.transactionDate}>{item.date}</Text>
+          <Text style={styles.transactionTitle}>{item.description || item.category}</Text>
+          <Text style={styles.transactionDate}>{new Date(item.date).toLocaleDateString()}</Text>
         </View>
       </View>
       <Text style={[
         styles.transactionAmount,
         item.type === 'income' ? styles.incomeAmount : styles.expenseAmount
       ]}>
-        {item.type === 'income' ? '+' : ''}${Math.abs(item.amount)}
+        {item.type === 'income' ? '+' : '-'}{item.currency || '€'}{Math.abs(item.amount).toFixed(2)}
       </Text>
     </View>
   );

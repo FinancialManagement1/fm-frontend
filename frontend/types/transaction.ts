@@ -1,16 +1,33 @@
-// Transaction types - This will be updated by Abir
-export interface Transaction {
+export type Transaction = {
   id: string;
-  title: string;
+  type: "income" | "expense";
   amount: number;
-  date: string;
+  currency: string;
   category: string;
-  type: 'income' | 'expense';
-  icon?: string;
-}
+  description?: string;
+  date: string;
+  createdAt?: string;
+};
 
-export interface TransactionSummary {
-  totalExpenses: number;
-  totalIncome: number;
-  balance: number;
-}
+export type CreateTransactionInput = {
+  type: "income" | "expense";
+  amount: number;
+  currency?: string;
+  category: string;
+  description?: string;
+  date: string;
+};
+
+export type UpdateTransactionInput = {
+  type: "income" | "expense";
+  amount: number;
+  currency?: string;
+  category: string;
+  description?: string;
+  date: string;
+};
+
+export type TransactionListResponse = {
+  items: Transaction[];
+  total: number;
+};

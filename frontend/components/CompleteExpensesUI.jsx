@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -45,10 +45,30 @@ const INCOME_CATEGORIES = [
 ];
 
 export default function CompleteExpensesUI() {
-  const { transactions, summary, addTransaction, updateTransaction, deleteTransaction } = useTransactions();
+  const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction } = useTransactions();
   const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+
+  // Fetch transactions on component mount
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  // Calculate summary from transactions
+  const summary = useMemo(() => {
+    const expenses = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const income = transactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0);
+    return {
+      totalExpenses: expenses,
+      totalIncome: income,
+      balance: income - expenses
+    };
+  }, [transactions]);
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
   const [showAddIncomeForm, setShowAddIncomeForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
