@@ -250,8 +250,9 @@ export default function DashboardScreen() {
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: "#0D2B1A" }]}
             activeOpacity={0.8}
+            onPress={() => router.push('/transactions/add?type=income')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: theme.income }]}>
+            <View style={styles.actionIcon}>
               <Ionicons name="arrow-up" size={20} color="#fff" />
             </View>
             <Text style={styles.actionText}>Add{"\n"}Income</Text>
@@ -260,8 +261,9 @@ export default function DashboardScreen() {
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: "#2B0D0D" }]}
             activeOpacity={0.8}
+            onPress={() => router.push('/transactions/add?type=expense')}
           >
-            <View style={[styles.actionIcon, { backgroundColor: theme.expense }]}>
+            <View style={styles.actionIcon}>
               <Ionicons name="arrow-down" size={20} color="#fff" />
             </View>
             <Text style={styles.actionText}>Add{"\n"}Expense</Text>

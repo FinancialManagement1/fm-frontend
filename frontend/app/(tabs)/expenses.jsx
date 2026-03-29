@@ -76,7 +76,10 @@ export default function ExpensesScreen() {
     };
 
     return (
-      <View style={styles.transactionItem}>
+      <TouchableOpacity 
+        style={styles.transactionItem}
+        onPress={() => router.push(`/transactions/edit?id=${item.id}`)}
+      >
         <View style={styles.transactionLeft}>
           <Text style={[styles.transactionIcon, { backgroundColor: getCategoryColor(item.category) }]}>
             {item.category.charAt(0)}
@@ -92,7 +95,7 @@ export default function ExpensesScreen() {
         ]}>
           {item.type === 'income' ? '+' : '-'}{item.currency || '€'}{Math.abs(item.amount).toFixed(2)}
         </Text>
-      </View>
+      </TouchableOpacity>
     );
   };
 
