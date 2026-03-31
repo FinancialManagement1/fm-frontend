@@ -110,15 +110,6 @@ const TransactionsScreen = () => {
         >
           <Text style={styles.editButtonText}>✏️</Text>
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.deleteButton}
-          onPress={(e) => {
-            e.stopPropagation();
-            handleDeleteTransaction(item.id, item.description || item.category);
-          }}
-        >
-          <Text style={styles.deleteButtonText}>🗑️</Text>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -363,28 +354,18 @@ const styles = StyleSheet.create({
   transactionRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
   editButton: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(59, 130, 246, 0.4)',
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   editButtonText: {
-    fontSize: 18,
-  },
-  deleteButton: {
-    padding: 10,
-    borderRadius: 10,
-    backgroundColor: 'rgba(239, 68, 68, 0.2)',
-    borderWidth: 1,
-    borderColor: 'rgba(239, 68, 68, 0.4)',
-    marginLeft: 8,
-  },
-  deleteButtonText: {
-    fontSize: 18,
+    fontSize: 14,
   },
 });
 
