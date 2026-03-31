@@ -7,11 +7,14 @@ import {
   TextInput, 
   TouchableOpacity, 
   SafeAreaView,
-  FlatList 
+  FlatList,
+  Alert
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTransactions } from '../../hooks/useTransactions';
 
 const TransactionsScreen = () => {
+  const router = useRouter();
   const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction } = useTransactions();
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -54,8 +57,34 @@ const TransactionsScreen = () => {
     return icons[category] || (type === 'income' ? '💰' : '💳');
   };
 
+  const handleDeleteTransaction = (id, description) => {
+    Alert.alert(
+      'Delete Transaction',
+      `Are you sure you want to delete "${description || 'this transaction'}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeTransaction(id);
+              Alert.alert('Success', 'Transaction deleted successfully!');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete transaction. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderTransactionItem = ({ item }) => (
-    <View style={styles.transactionItem}>
+    <TouchableOpacity 
+      style={styles.transactionItem}
+      onPress={() => router.push(`/transactions/edit?id=${item.id}`)}
+      activeOpacity={0.7}
+    >
       <View style={styles.transactionLeft}>
         <View style={[styles.transactionIconBox, { backgroundColor: item.type === 'income' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)' }]}>
           <Text style={styles.transactionIcon}>{getCategoryIcon(item.category, item.type)}</Text>
@@ -65,13 +94,24 @@ const TransactionsScreen = () => {
           <Text style={styles.transactionDate}>{new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
         </View>
       </View>
-      <Text style={[
-        styles.transactionAmount,
-        item.type === 'income' ? styles.incomeAmount : styles.expenseAmount
-      ]}>
-        {item.type === 'income' ? '+' : '-'}{item.currency || '€'}{Math.abs(item.amount).toFixed(2)}
-      </Text>
-    </View>
+      <View style={styles.transactionRight}>
+        <Text style={[
+          styles.transactionAmount,
+          item.type === 'income' ? styles.incomeAmount : styles.expenseAmount
+        ]}>
+          {item.type === 'income' ? '+' : '-'}{item.currency || '€'}{Math.abs(item.amount).toFixed(2)}
+        </Text>
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            handleDeleteTransaction(item.id, item.description || item.category);
+          }}
+        >
+          <Text style={styles.deleteButtonText}>🗑️</Text>
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -310,6 +350,19 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  transactionRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  deleteButtonText: {
+    fontSize: 16,
   },
 });
 

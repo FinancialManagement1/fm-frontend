@@ -18,7 +18,7 @@ export default function EditTransactionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const id = params?.id;
-  const { transactions, editTransaction } = useTransactions();
+  const { transactions, editTransaction, removeTransaction } = useTransactions();
   
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
@@ -94,11 +94,16 @@ export default function EditTransactionScreen() {
           text: 'Delete', 
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             try {
-              // You'll need to implement removeTransaction in the hook
-              Alert.alert('Info', 'Delete functionality will be implemented next');
+              await removeTransaction(id);
+              Alert.alert('Success', 'Transaction deleted successfully!', [
+                { text: 'OK', onPress: () => router.back() }
+              ]);
             } catch (error) {
-              Alert.alert('Error', 'Failed to delete transaction');
+              Alert.alert('Error', 'Failed to delete transaction. Please try again.');
+            } finally {
+              setLoading(false);
             }
           }
         }
