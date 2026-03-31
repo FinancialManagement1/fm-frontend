@@ -102,6 +102,15 @@ const TransactionsScreen = () => {
           {item.type === 'income' ? '+' : '-'}{item.currency || '€'}{Math.abs(item.amount).toFixed(2)}
         </Text>
         <TouchableOpacity 
+          style={styles.editButton}
+          onPress={(e) => {
+            e.stopPropagation();
+            router.push(`/transactions/edit?id=${item.id}`);
+          }}
+        >
+          <Text style={styles.editButtonText}>✏️</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
           style={styles.deleteButton}
           onPress={(e) => {
             e.stopPropagation();
@@ -356,13 +365,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  editButton: {
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.4)',
+  },
+  editButtonText: {
+    fontSize: 18,
+  },
   deleteButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+    padding: 10,
+    borderRadius: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+    marginLeft: 8,
   },
   deleteButtonText: {
-    fontSize: 16,
+    fontSize: 18,
   },
 });
 
