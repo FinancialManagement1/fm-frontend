@@ -34,12 +34,14 @@ export default function ExpensesScreen() {
 
   // Calculate summary from transactions
   const summary = useMemo(() => {
+    console.log('Transactions:', transactions);
     const expenses = transactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     const income = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
+    console.log('Expenses:', expenses, 'Income:', income);
     return {
       totalExpenses: expenses,
       totalIncome: income,
@@ -55,6 +57,7 @@ export default function ExpensesScreen() {
   });
 
   const renderTransactionItem = ({ item }) => {
+    console.log('Transaction item:', item.id, 'Type:', item.type, 'Amount:', item.amount);
     const getCategoryColor = (category) => {
       const colors = {
         'Education': '#3b82f6',
