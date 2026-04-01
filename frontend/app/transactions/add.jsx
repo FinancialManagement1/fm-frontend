@@ -31,9 +31,7 @@ export default function AddTransactionScreen() {
 
   const isIncome = type === 'income';
 
-  // Debug: Log the type to see what we're getting
-  console.log('AddTransactionScreen - type:', type, 'isIncome:', isIncome);
-
+  
   const categories = isIncome 
     ? [
         { name: 'Salary', icon: '💰', color: '#22c55e' },
@@ -80,8 +78,6 @@ export default function AddTransactionScreen() {
         date
       };
       
-      // Debug: Log what we're saving
-      console.log('Saving transaction:', transactionData);
       
       await addTransaction(transactionData);
       
