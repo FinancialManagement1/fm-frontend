@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -89,21 +90,36 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
 
   const currencySymbol = data.currency === "EUR" ? "€" : "$";
+  // TEMP FIX (REMOVE WHEN BACKEND BUDGET API READY)
+  // Backend currently returns monthlyBudget.limit = 0 (not implemented)
+  // To prevent negative remaining values in UI,
+  // we apply a fallback limit = 5000 ONLY when limit <= 0
+  // - Remove this once backend provides real budget via API
+  const safeBudget = {
+    ...data.monthlyBudget,
+    limit: data.monthlyBudget.limit > 0 ? data.monthlyBudget.limit : 5000,
+  }; // Ensure we don't divide by zero when calculating progress percentage-by amila
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const result = await getDashboardSummary();
-        setData(result);
-      } catch (error) {
-        console.log("Dashboard fetch error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const computedProgress =
+    safeBudget.limit > 0 ? (safeBudget.spent / safeBudget.limit) * 100 : 0;
 
-    fetchDashboard();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchDashboard = async () => {
+        setLoading(true);
+        try {
+          const result = await getDashboardSummary();
+          setData(result);
+        } catch (error) {
+          console.log("Dashboard fetch error:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchDashboard();
+    }, []),
+  );
 
   if (loading) {
     return (
@@ -160,9 +176,7 @@ export default function DashboardScreen() {
               </Text>
             </View>
           </View>
-          <CircularProgress
-            percentage={data.monthlyBudget.progressPercentage}
-          />
+          <CircularProgress percentage={computedProgress} />
         </View>
 
         {/* ── Income & Expenses Row ── */}
@@ -220,12 +234,12 @@ export default function DashboardScreen() {
           <View style={styles.budgetRow}>
             <Text style={styles.budgetAmount}>
               {currencySymbol}
-              {data.monthlyBudget.spent.toFixed(2)} / {currencySymbol}
-              {data.monthlyBudget.limit.toFixed(2)}
+              {safeBudget.spent.toFixed(2)} / {currencySymbol}
+              {safeBudget.limit.toFixed(2)}
             </Text>
             <View style={styles.budgetPercentBadge}>
               <Text style={styles.budgetPercent}>
-                {data.monthlyBudget.progressPercentage}%
+                {computedProgress.toFixed(0)}%
               </Text>
             </View>
           </View>
@@ -234,7 +248,7 @@ export default function DashboardScreen() {
               style={[
                 styles.progressFill,
                 {
-                  width: `${Math.min(data.monthlyBudget.progressPercentage, 100)}%`,
+                  width: `${Math.min(computedProgress, 100)}%`,
                   backgroundColor:
                     data.monthlyBudget.progressPercentage > 80
                       ? theme.expense
@@ -247,16 +261,25 @@ export default function DashboardScreen() {
             Remaining:{" "}
             <Text style={{ color: theme.income, fontWeight: "700" }}>
               {currencySymbol}
-              {data.monthlyBudget.remaining.toFixed(2)}
+              {(safeBudget.limit - safeBudget.spent).toFixed(2)}
             </Text>
           </Text>
         </View>
-
+        {/* ── Pooja missed view transaction button / amila added as a temporary solution ── */}
+        <View style={{ marginBottom: 12 }}>
+          <TouchableOpacity
+            style={{ padding: 12, backgroundColor: "cyan", borderRadius: 10 }}
+            onPress={() => router.push("/transactions")}
+          >
+            <Text>View Transactions</Text>
+          </TouchableOpacity>
+        </View>
         {/* ── Add Income / Expense Buttons ── */}
         <View style={styles.row}>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: "#0D2B1A" }]}
             activeOpacity={0.8}
+            onPress={() => router.push("/transactions/add?type=income")}
           >
             <View
               style={[styles.actionIcon, { backgroundColor: theme.income }]}
@@ -269,6 +292,7 @@ export default function DashboardScreen() {
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: "#2B0D0D" }]}
             activeOpacity={0.8}
+            onPress={() => router.push("/transactions/add?type=expense")}
           >
             <View
               style={[styles.actionIcon, { backgroundColor: theme.expense }]}
