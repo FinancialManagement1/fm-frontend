@@ -265,7 +265,15 @@ export default function DashboardScreen() {
             </Text>
           </Text>
         </View>
-
+        {/* ── Pooja missed view transaction button / amila added as a temporary solution ── */}
+        <View style={{ marginBottom: 12 }}>
+          <TouchableOpacity
+            style={{ padding: 12, backgroundColor: "cyan", borderRadius: 10 }}
+            onPress={() => router.push("/transactions")}
+          >
+            <Text>View Transactions</Text>
+          </TouchableOpacity>
+        </View>
         {/* ── Add Income / Expense Buttons ── */}
         <View style={styles.row}>
           <TouchableOpacity

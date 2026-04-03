@@ -46,7 +46,11 @@ export default function EditTransactionScreen() {
     if (foundTransaction) {
       setTransaction(foundTransaction);
       setNotFound(false);
-    } else if (!transactionsLoading && transactions.length > 0) {
+    } else if (
+      !transactionsLoading &&
+      transactions.length > 0 &&
+      transaction !== null
+    ) {
       setNotFound(true);
       Alert.alert("Error", "Transaction not found", [
         { text: "OK", onPress: () => router.back() },
@@ -56,6 +60,7 @@ export default function EditTransactionScreen() {
 
   const handleSubmit = async (transactionData) => {
     await editTransaction(id, transactionData);
+    await fetchTransactions(); // Refresh transactions after editing-abir's mistake
     Alert.alert("Success", "Transaction updated successfully!", [
       { text: "OK", onPress: () => router.back() },
     ]);
@@ -64,9 +69,7 @@ export default function EditTransactionScreen() {
   const handleDelete = async () => {
     try {
       await removeTransaction(id);
-      Alert.alert("Success", "Transaction deleted successfully!", [
-        { text: "OK", onPress: () => router.back() },
-      ]);
+      router.back();
     } catch (error) {
       Alert.alert("Error", "Failed to delete transaction");
     }
@@ -105,15 +108,17 @@ export default function EditTransactionScreen() {
           </View>
 
           {/* Form */}
-          <TransactionForm
-            initialData={transaction}
-            onSubmit={handleSubmit}
-            onDelete={handleDelete}
-            isEditing={true}
-            submitButtonText="Save Changes"
-            deleteButtonText="Delete Transaction"
-            showDeleteButton={true}
-          />
+          {transaction && (
+            <TransactionForm
+              initialData={transaction}
+              onSubmit={handleSubmit}
+              onDelete={handleDelete}
+              isEditing={true}
+              submitButtonText="Save Changes"
+              deleteButtonText="Delete Transaction"
+              showDeleteButton={true}
+            />
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
