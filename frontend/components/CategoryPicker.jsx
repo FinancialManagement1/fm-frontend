@@ -7,40 +7,96 @@ import {
   Modal,
   FlatList,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
+
+// Category Grid Picker - Matches Figma Design
+// Props:
+// - visible: boolean to show/hide modal
+// - onClose: function to close modal
+// - onSelect: function(categoryName) called when category selected
+// - categories: array of {name, type} from Abir's hook - NO hardcoded values
+// - selectedValue: currently selected category name
+// - type: 'income' or 'expense'
+// - loading: boolean to show loading state
 
 const CategoryPicker = ({ 
   visible, 
   onClose, 
   onSelect, 
-  categories = [], // Will come from Abir's hook
+  categories = [], // From Abir's useCategories hook - NO hardcoded values
   selectedValue,
-  type = 'expense' // 'income' or 'expense'
+  type = 'expense',
+  loading = false,
 }) => {
+  // Get icon based on category name - visual enhancement only
+  const getCategoryIcon = (name) => {
+    const icons = {
+      'Salary': '💰',
+      'Freelance': '💻',
+      'Business': '💼',
+      'Investment': '📈',
+      'Gift': '🎁',
+      'Other': '📦',
+      'Food': '🍔',
+      'Rent': '🏠',
+      'Transport': '🚗',
+      'Entertainment': '🎬',
+      'Shopping': '🛍️',
+      'Health': '🏥',
+      'Education': '📚',
+      'Utilities': '💡',
+    };
+    return icons[name] || '📦';
+  };
+
+  // Get background color based on category type
+  const getCategoryColor = (categoryType) => {
+    if (categoryType === 'income') {
+      return 'rgba(34, 197, 94, 0.2)'; // Green
+    }
+    return 'rgba(239, 68, 68, 0.2)'; // Red for expense
+  };
+
   const renderCategoryItem = ({ item }) => (
     <TouchableOpacity
       style={[
-        styles.categoryItem,
-        selectedValue === item.name && styles.selectedItem
+        styles.categoryCard,
+        { backgroundColor: getCategoryColor(item.type) },
+        selectedValue === item.name && styles.selectedCard
       ]}
       onPress={() => {
-        onSelect(item.name);
+        onSelect(item.name); // Always use item.name - never use index
         onClose();
       }}
+      activeOpacity={0.7}
     >
-      <View style={[styles.iconContainer, { backgroundColor: item.color || '#6b7280' }]}>
-        <Text style={styles.iconText}>{item.name?.charAt(0)?.toUpperCase()}</Text>
+      <View style={styles.iconWrapper}>
+        <Text style={styles.icon}>{getCategoryIcon(item.name)}</Text>
       </View>
-      <Text style={[
-        styles.categoryName,
-        selectedValue === item.name && styles.selectedText
-      ]}>
-        {item.name}
+      <Text 
+        style={[
+          styles.categoryName,
+          selectedValue === item.name && styles.selectedName
+        ]}
+        numberOfLines={1}
+      >
+        {item.name} {/* Always display item.name */}
       </Text>
-      {selectedValue === item.name && (
-        <Text style={styles.checkmark}>✓</Text>
-      )}
     </TouchableOpacity>
+  );
+
+  const renderEmptyState = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyText}>No categories available</Text>
+    </View>
+  );
+
+  const renderLoadingState = () => (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#fbbf24" />
+      <Text style={styles.loadingText}>Loading categories...</Text>
+    </View>
   );
 
   return (
@@ -51,24 +107,29 @@ const CategoryPicker = ({
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.container}>
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Select Category</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Text style={styles.closeText}>✕</Text>
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
+          <Text style={styles.title}>Select Category</Text>
+          <View style={styles.placeholder} />
         </View>
 
-        <FlatList
-          data={categories}
-          renderItem={renderCategoryItem}
-          keyExtractor={(item) => item.name}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No categories available</Text>
-            </View>
-          }
-        />
+        {/* Content */}
+        {loading ? (
+          renderLoadingState()
+        ) : (
+          <FlatList
+            data={categories}
+            renderItem={renderCategoryItem}
+            keyExtractor={(item) => item.name}
+            numColumns={3}
+            contentContainerStyle={styles.grid}
+            ListEmptyComponent={renderEmptyState}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -83,80 +144,94 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#27272a',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#18181b',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '600',
   },
   title: {
     fontSize: 18,
     fontWeight: '600',
     color: '#ffffff',
   },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#27272a',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  list: {
-    padding: 16,
-  },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#18181b',
-    borderRadius: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#27272a',
-  },
-  selectedItem: {
-    borderColor: '#fbbf24',
-    backgroundColor: 'rgba(251, 191, 36, 0.1)',
-  },
-  iconContainer: {
+  placeholder: {
     width: 40,
-    height: 40,
-    borderRadius: 20,
+  },
+  grid: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  categoryCard: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 8,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    minWidth: 100,
+    maxWidth: 120,
   },
-  iconText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '600',
+  selectedCard: {
+    borderColor: '#fbbf24',
+    borderWidth: 2,
+  },
+  iconWrapper: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  icon: {
+    fontSize: 28,
   },
   categoryName: {
-    flex: 1,
-    fontSize: 16,
-    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '500',
+    color: '#ffffff',
+    textAlign: 'center',
   },
-  selectedText: {
+  selectedName: {
     color: '#fbbf24',
-  },
-  checkmark: {
-    color: '#fbbf24',
-    fontSize: 18,
     fontWeight: '600',
   },
-  emptyContainer: {
-    padding: 40,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  emptyText: {
+  loadingText: {
+    marginTop: 16,
     color: '#9ca3af',
     fontSize: 14,
   },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  emptyText: {
+    color: '#9ca3af',
+    fontSize: 16,
+    fontWeight: '500',
+  },
 });
 
-export default CategoryPicker;
