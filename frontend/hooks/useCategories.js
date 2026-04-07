@@ -2,11 +2,13 @@ import { useState, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../constants/api";
 
-// ── Fetch categories from API ──
+// ── Fetch categories from API (type is REQUIRED) ──
 const fetchCategoriesFromAPI = async (token, type) => {
-  const url = type
-    ? `${API_BASE_URL}/categories?type=${type}`
-    : `${API_BASE_URL}/categories`;
+  if (!type) {
+    throw new Error("type is required: must be 'income' or 'expense'");
+  }
+
+  const url = `${API_BASE_URL}/categories?type=${type}`;
 
   const response = await fetch(url, {
     method: "GET",
@@ -29,7 +31,6 @@ const fetchCategoriesFromAPI = async (token, type) => {
 export function useCategories() {
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [expenseCategories, setExpenseCategories] = useState([]);
-  const [allCategories, setAllCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -40,29 +41,35 @@ export function useCategories() {
     return token;
   };
 
-  // ── Fetch categories by type ──
-  // type: "income" | "expense" | undefined (all)
-  const fetchCategories = useCallback(async (type) => {
+  // ── Fetch income categories ──
+  const fetchIncomeCategories = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const token = await getToken();
-      const items = await fetchCategoriesFromAPI(token, type);
-
-      if (type === "income") {
-        setIncomeCategories(items);
-      } else if (type === "expense") {
-        setExpenseCategories(items);
-      } else {
-        setAllCategories(items);
-        // ── Also split by type ──
-        setIncomeCategories(items.filter((i) => i.type === "income"));
-        setExpenseCategories(items.filter((i) => i.type === "expense"));
-      }
-
+      const items = await fetchCategoriesFromAPI(token, "income");
+      setIncomeCategories(items);
       return items;
     } catch (err) {
-      console.error("fetchCategories error:", err);
+      console.error("fetchIncomeCategories error:", err);
+      setError(err.message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // ── Fetch expense categories ──
+  const fetchExpenseCategories = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const items = await fetchCategoriesFromAPI(token, "expense");
+      setExpenseCategories(items);
+      return items;
+    } catch (err) {
+      console.error("fetchExpenseCategories error:", err);
       setError(err.message);
       return [];
     } finally {
@@ -84,7 +91,6 @@ export function useCategories() {
 
       setIncomeCategories(incomeItems);
       setExpenseCategories(expenseItems);
-      setAllCategories([...incomeItems, ...expenseItems]);
 
       return { incomeItems, expenseItems };
     } catch (err) {
@@ -100,12 +106,12 @@ export function useCategories() {
     // ── State ──
     incomeCategories,
     expenseCategories,
-    allCategories,
     loading,
     error,
 
     // ── Actions ──
-    fetchCategories,
+    fetchIncomeCategories,
+    fetchExpenseCategories,
     fetchAllCategories,
   };
 }
