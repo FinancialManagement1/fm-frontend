@@ -7,7 +7,8 @@ import {
   TextInput, 
   TouchableOpacity, 
   SafeAreaView,
-  FlatList 
+  FlatList,
+  Alert
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '../../hooks/useTransactions';
@@ -34,14 +35,12 @@ export default function ExpensesScreen() {
 
   // Calculate summary from transactions
   const summary = useMemo(() => {
-    console.log('Transactions:', transactions);
     const expenses = transactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     const income = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
-    console.log('Expenses:', expenses, 'Income:', income);
     return {
       totalExpenses: expenses,
       totalIncome: income,
@@ -50,14 +49,35 @@ export default function ExpensesScreen() {
   }, [transactions]);
 
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesFilter = filter === 'all' || transaction.type === filter;
+    const matchesFilter = filter === 'all' || transaction.type?.toLowerCase() === filter;
     const matchesSearch = transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
+  const handleDelete = (id) => {
+    Alert.alert(
+      'Delete Transaction',
+      'Are you sure you want to delete this transaction?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Delete', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await removeTransaction(id);
+              Alert.alert('Success', 'Transaction deleted successfully!');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to delete transaction.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderTransactionItem = ({ item }) => {
-    console.log('Transaction item:', item.id, 'Type:', item.type, 'Amount:', item.amount);
     const getCategoryColor = (category) => {
       const colors = {
         'Education': '#3b82f6',
@@ -82,6 +102,7 @@ export default function ExpensesScreen() {
       <TouchableOpacity 
         style={styles.transactionItem}
         onPress={() => router.push(`/transactions/edit?id=${item.id}`)}
+        activeOpacity={0.7}
       >
         <View style={styles.transactionLeft}>
           <Text style={[styles.transactionIcon, { backgroundColor: getCategoryColor(item.category) }]}>
@@ -92,12 +113,25 @@ export default function ExpensesScreen() {
             <Text style={styles.transactionDate}>{new Date(item.date).toLocaleDateString()}</Text>
           </View>
         </View>
-        <Text style={[
-          styles.transactionAmount,
-          item.type === 'income' ? styles.incomeAmount : styles.expenseAmount
-        ]}>
-          {item.type === 'income' ? '+' : '-'}{item.currency || '€'}{Math.abs(item.amount).toFixed(2)}
-        </Text>
+        <View style={styles.transactionRight}>
+          <Text style={[
+            styles.transactionAmount,
+            item.type?.toLowerCase() === 'income' ? styles.incomeAmount : styles.expenseAmount
+          ]}>
+            {item.type?.toLowerCase() === 'income' ? '+' : '-'}{item.currency === 'EUR' ? '€' : (item.currency || '€')}{Math.abs(item.amount).toFixed(2)}
+          </Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={(e) => {
+                e.stopPropagation();
+                router.push(`/transactions/edit?id=${item.id}`);
+              }}
+            >
+              <Text style={styles.editButtonText}>✏️</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -365,8 +399,26 @@ const styles = StyleSheet.create({
   },
   calendarNavButtonText: {
     fontSize: 20,
-    color: '#ffffff',
-    fontWeight: 'bold',
+    color: '#9ca3af',
+  },
+  transactionRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    fontSize: 14,
   },
   transactionsList: {
     marginBottom: 112, // Safe area bottom for navigation
