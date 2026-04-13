@@ -23,7 +23,7 @@ export default function ScannerScreen() {
   const [showRawText, setShowRawText] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(null);
 
-  // Use Abir's hook for scan logic
+  // Use Abir's real hook for scan logic
   const {
     scanResult,
     scanLoading,
@@ -82,10 +82,8 @@ export default function ScannerScreen() {
       }
     } catch (err) {
       if (err instanceof AuthError) {
-        // Redirect to login on auth error
         router.push("/login");
       }
-      // Other errors are handled by hook's error state
     }
   };
 
