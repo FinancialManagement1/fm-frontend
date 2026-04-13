@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,11 @@ import {
   TouchableOpacity,
   Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
+import { useCategories } from '../hooks/useCategories';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import CategoryPicker from './CategoryPicker';
 
 const TransactionForm = ({
   initialData = {},
@@ -26,30 +30,23 @@ const TransactionForm = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date(initialData.date || new Date()));
   const [loading, setLoading] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
 
   const isIncome = transactionType === 'income';
 
-  const incomeCategories = [
-    { name: 'Salary', icon: '💰', color: '#22c55e' },
-    { name: 'Freelance', icon: '💻', color: '#3b82f6' },
-    { name: 'Business', icon: '💼', color: '#f59e0b' },
-    { name: 'Investment', icon: '📈', color: '#8b5cf6' },
-    { name: 'Gift', icon: '🎁', color: '#ec4899' },
-    { name: 'Other', icon: '💵', color: '#6b7280' }
-  ];
+  // Use Abir's useCategories hook - NO hardcoded categories
+  const { categories, loading: categoriesLoading, fetchCategories } = useCategories();
 
-  const expenseCategories = [
-    { name: 'Food', icon: '🍽️', color: '#22c55e' },
-    { name: 'Transport', icon: '🚌', color: '#3b82f6' },
-    { name: 'Shopping', icon: '🛍️', color: '#f59e0b' },
-    { name: 'Bills', icon: '💡', color: '#ef4444' },
-    { name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
-    { name: 'Health', icon: '❤️', color: '#f43f5e' },
-    { name: 'Education', icon: '📚', color: '#06b6d4' },
-    { name: 'Other', icon: '📝', color: '#6b7280' }
-  ];
-
-  const categories = isIncome ? incomeCategories : expenseCategories;
+  // Fetch categories when transaction type changes
+  useEffect(() => {
+    const loadCategories = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        await fetchCategories(token, transactionType);
+      }
+    };
+    loadCategories();
+  }, [transactionType]);
 
   const handleSave = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -126,6 +123,12 @@ const TransactionForm = ({
   const changeMonth = (delta) => {
     const newDate = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + delta, 1);
     setSelectedDate(newDate);
+  };
+
+  // Generate consistent color for category based on index
+  const getCategoryColor = (index) => {
+    const colors = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#f43f5e', '#06b6d4', '#6b7280'];
+    return colors[index % colors.length];
   };
 
   const renderCalendar = () => {
@@ -205,28 +208,19 @@ const TransactionForm = ({
       {/* Category Selection */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Category</Text>
-        <View style={styles.categoryGrid}>
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.name}
-              style={[
-                styles.categoryCard,
-                category === cat.name && { backgroundColor: cat.color + '30', borderColor: cat.color }
-              ]}
-              onPress={() => setCategory(cat.name)}
-            >
-              <View style={[styles.categoryIconBox, { backgroundColor: cat.color + '20' }]}>
-                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-              </View>
-              <Text style={[
-                styles.categoryText,
-                category === cat.name && { color: cat.color, fontWeight: '600' }
-              ]}>
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity
+          style={styles.categoryButton}
+          onPress={() => setShowCategoryPicker(true)}
+          disabled={categoriesLoading}
+        >
+          {categoriesLoading ? (
+            <ActivityIndicator size="small" color="#fbbf24" />
+          ) : category ? (
+            <Text style={styles.categoryButtonText}>{category}</Text>
+          ) : (
+            <Text style={styles.categoryButtonPlaceholder}>Select Category</Text>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Date Picker */}
@@ -310,6 +304,17 @@ const TransactionForm = ({
           </View>
         </View>
       </Modal>
+
+      {/* Category Picker Modal */}
+      <CategoryPicker
+        visible={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        onSelect={(selectedCategory) => setCategory(selectedCategory)}
+        categories={categories}
+        selectedValue={category}
+        type={transactionType}
+        loading={categoriesLoading}
+      />
     </View>
   );
 };
@@ -406,6 +411,33 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
     textAlign: 'center',
+  },
+  categoryCardSelected: {
+    borderColor: '#fbbf24',
+    backgroundColor: 'rgba(251, 191, 36, 0.1)',
+  },
+  categoryTextSelected: {
+    color: '#fbbf24',
+    fontWeight: '600',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    gap: 8,
+  },
+  loadingText: {
+    color: '#9ca3af',
+    fontSize: 14,
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#9ca3af',
+    fontSize: 14,
   },
   dateInputContainer: {
     backgroundColor: '#1a1a1a',
@@ -533,6 +565,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  categoryButton: {
+    backgroundColor: '#18181b',
+    borderWidth: 1,
+    borderColor: '#27272a',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#ffffff',
+  },
+  categoryButtonPlaceholder: {
+    fontSize: 16,
+    color: '#9ca3af',
   },
 });
 

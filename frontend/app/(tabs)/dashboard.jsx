@@ -13,6 +13,9 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../constants/theme";
 import { getDashboardSummary } from "../../services/dashboardService";
+// TODO: Use Abir's useAuth hook when ready
+// import { useAuth } from "../../hooks/useAuth";
+import LogoutButton from "../../components/LogoutButton";
 
 const MOCK_DATA = {
   userName: "User",
@@ -88,6 +91,9 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [data, setData] = useState(MOCK_DATA);
   const [loading, setLoading] = useState(true);
+  
+  // TODO: Get logout from Abir's useAuth hook
+  // const { logout } = useAuth();
 
   const currencySymbol = data.currency === "EUR" ? "€" : "$";
   // TEMP FIX (REMOVE WHEN BACKEND BUDGET API READY)
@@ -151,13 +157,23 @@ export default function DashboardScreen() {
               Here's your financial overview
             </Text>
           </View>
-          <TouchableOpacity style={styles.notifBtn}>
-            <Ionicons
-              name="notifications-outline"
-              size={22}
-              color={theme.text}
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.notifBtn}>
+              <Ionicons
+                name="notifications-outline"
+                size={22}
+                color={theme.text}
+              />
+            </TouchableOpacity>
+            {/* Logout Button - calls Abir's hook function */}
+            <LogoutButton 
+              onPress={() => {
+                // TODO: Replace with actual logout from useAuth hook
+                console.log("Logout pressed - waiting for Abir's hook");
+              }}
+              style={styles.logoutBtn}
             />
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Total Balance Card ── */}
@@ -490,5 +506,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     lineHeight: 20,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  logoutBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#ef4444",
+    borderRadius: 6,
   },
 });

@@ -78,24 +78,9 @@ export default function ExpensesScreen() {
   };
 
   const renderTransactionItem = ({ item }) => {
-    const getCategoryColor = (category) => {
-      const colors = {
-        Education: "#3b82f6",
-        Finance: "#8b5cf6",
-        Salary: "#06b6d4",
-        Housing: "#a855f7",
-        Books: "#6366f1",
-        Tuition: "#3b82f6",
-        Loans: "#ef4444",
-        Rent: "#8b5cf6",
-        Food: "#10b981",
-        Transport: "#06b6d4",
-        Entertainment: "#ec4899",
-        Health: "#f43f5e",
-        Personal: "#8b5cf6",
-        Other: "#6b7280",
-      };
-      return colors[category] || "#6b7280";
+    // Use a simple color based on transaction type instead of hardcoded categories
+    const getCategoryColor = () => {
+      return item.type === 'income' ? '#22c55e' : '#ef4444';
     };
 
     return (
@@ -108,7 +93,7 @@ export default function ExpensesScreen() {
           <Text
             style={[
               styles.transactionIcon,
-              { backgroundColor: getCategoryColor(item.category) },
+              { backgroundColor: getCategoryColor() },
             ]}
           >
             {item.category.charAt(0)}
