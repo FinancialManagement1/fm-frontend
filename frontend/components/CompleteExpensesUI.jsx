@@ -14,41 +14,39 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '../hooks/useTransactions';
+import { useCategories } from '../hooks/useCategories';
 
 const { width, height } = Dimensions.get('window');
 
-// Category definitions
-const EXPENSE_CATEGORIES = [
-  { name: 'Tuition', color: '#3b82f6', icon: '📚' },
-  { name: 'Rent', color: '#8b5cf6', icon: '🏠' },
-  { name: 'Books', color: '#6366f1', icon: '📖' },
-  { name: 'Food', color: '#10b981', icon: '🛒' },
-  { name: 'Transport', color: '#06b6d4', icon: '🚌' },
-  { name: 'Entertainment', color: '#ec4899', icon: '🎬' },
-  { name: 'Loans', color: '#ef4444', icon: '💳' },
-  { name: 'Health', color: '#f43f5e', icon: '❤️' },
-  { name: 'Personal', color: '#8b5cf6', icon: '👤' },
-  { name: 'Other', color: '#6b7280', icon: '💰' },
-];
+// Helper functions for category visuals ONLY - no hardcoded arrays
+const getCategoryIcon = (categoryName) => {
+  // Icon mapping for display ONLY - does not define categories
+  const iconMap = {
+    'Tuition': '📚', 'Rent': '🏠', 'Books': '📖', 'Food': '🛒', 'Transport': '🚌',
+    'Entertainment': '🎬', 'Loans': '💳', 'Health': '❤️', 'Personal': '👤', 'Other': '💰',
+    'Salary': '💼', 'Allowance': '🤝', 'Scholarship': '🎓', 'Internship': '🏪', 'Freelance': '💻',
+    'Gift': '🎁', 'Pocket Money': '💵', 'Property': '🏢', 'Dividends': '�'
+  };
+  return iconMap[categoryName] || categoryName?.charAt(0)?.toUpperCase() || '?';
+};
 
-const INCOME_CATEGORIES = [
-  { name: 'Salary', color: '#3b82f6', icon: '💼' },
-  { name: 'Allowance', color: '#8b5cf6', icon: '🤝' },
-  { name: 'Scholarship', color: '#10b981', icon: '🎓' },
-  { name: 'Internship', color: '#06b6d4', icon: '🏪' },
-  { name: 'Freelance', color: '#14b8a6', icon: '💻' },
-  { name: 'Gift', color: '#ec4899', icon: '🎁' },
-  { name: 'Pocket Money', color: '#f59e0b', icon: '💵' },
-  { name: 'Property', color: '#6366f1', icon: '🏢' },
-  { name: 'Dividends', color: '#f97316', icon: '📈' },
-  { name: 'Other', color: '#6b7280', icon: '💰' },
-];
+const getCategoryColor = (categoryType) => {
+  // Color based on type only - no hardcoded category lists
+  return categoryType === 'income' ? '#22c55e' : '#ef4444';
+};
 
 export default function CompleteExpensesUI() {
   const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction } = useTransactions();
+  const { incomeCategories, expenseCategories, loading: categoriesLoading, fetchIncomeCategories, fetchExpenseCategories } = useCategories();
   const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchIncomeCategories();
+    fetchExpenseCategories();
+  }, [fetchIncomeCategories, fetchExpenseCategories]);
 
   // Fetch transactions on component mount
   useEffect(() => {
@@ -166,7 +164,7 @@ export default function CompleteExpensesUI() {
       type: type,
       category: category,
       date: date,
-      icon: (type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).find(c => c.name === category)?.icon || '💰',
+      icon: getCategoryIcon(category),
     };
 
     if (editingTransaction) {
@@ -183,8 +181,9 @@ export default function CompleteExpensesUI() {
   };
 
   const renderTransactionItem = ({ item, index }) => {
-    const categories = item.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-    const categoryData = categories.find(c => c.name === item.category) || categories[9];
+    // Use helper functions instead of hardcoded arrays
+    const categoryIcon = getCategoryIcon(item.category);
+    const categoryColor = getCategoryColor(item.type);
     
     return (
       <Animated.View
@@ -197,8 +196,8 @@ export default function CompleteExpensesUI() {
         ]}
       >
         <View style={styles.transactionLeft}>
-          <View style={[styles.transactionIcon, { backgroundColor: categoryData.color }]}>
-            <Text style={styles.transactionIconText}>{categoryData.icon}</Text>
+          <View style={[styles.transactionIcon, { backgroundColor: categoryColor }]}>
+            <Text style={styles.transactionIconText}>{categoryIcon}</Text>
           </View>
           <View style={styles.transactionDetails}>
             <Text style={styles.transactionTitle}>{item.title}</Text>
@@ -240,9 +239,10 @@ export default function CompleteExpensesUI() {
     </View>
   );
 
-  const renderModal = (type, categories) => {
+  const renderModal = (type) => {
     const isExpense = type === 'expense';
     const modalVisible = isExpense ? showAddExpenseForm : showAddIncomeForm;
+    const categories = isExpense ? expenseCategories : incomeCategories;
     
     return (
       <Modal
@@ -304,8 +304,8 @@ export default function CompleteExpensesUI() {
                       ]}
                       onPress={() => setCategory(cat.name)}
                     >
-                      <View style={[styles.categoryIcon, { backgroundColor: cat.color }]}>
-                        <Text style={styles.categoryIconText}>{cat.icon}</Text>
+                      <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(type) }]}>
+                        <Text style={styles.categoryIconText}>{getCategoryIcon(cat.name)}</Text>
                       </View>
                       <Text style={[
                         styles.categoryButtonText,
@@ -523,8 +523,8 @@ export default function CompleteExpensesUI() {
       </View>
 
       {/* Modals */}
-      {renderModal('expense', EXPENSE_CATEGORIES)}
-      {renderModal('income', INCOME_CATEGORIES)}
+      {renderModal('expense')}
+      {renderModal('income')}
     </SafeAreaView>
   );
 }
