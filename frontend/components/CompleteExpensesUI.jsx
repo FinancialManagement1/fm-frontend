@@ -14,46 +14,57 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '../hooks/useTransactions';
+import { useCategories } from '../hooks/useCategories';
+
+const getCategoryIcon = (name) => {
+  const icons = {
+    Tuition: '📚',
+    Rent: '🏠',
+    Books: '📖',
+    Food: '🍔',
+    Transport: '🚌',
+    Entertainment: '🎬',
+    Loans: '💳',
+    Health: '❤️',
+    Personal: '👤',
+    Salary: '💼',
+    Allowance: '🤝',
+    Scholarship: '🎓',
+    Internship: '🏪',
+    Freelance: '💻',
+    Gift: '🎁',
+    'Pocket Money': '💵',
+    Property: '🏢',
+    Dividends: '📈',
+    Other: '💰'
+  };
+  return icons[name] || '📦';
+};
 
 const { width, height } = Dimensions.get('window');
 
-// Category definitions
-const EXPENSE_CATEGORIES = [
-  { name: 'Tuition', color: '#3b82f6', icon: '📚' },
-  { name: 'Rent', color: '#8b5cf6', icon: '🏠' },
-  { name: 'Books', color: '#6366f1', icon: '📖' },
-  { name: 'Food', color: '#10b981', icon: '🛒' },
-  { name: 'Transport', color: '#06b6d4', icon: '🚌' },
-  { name: 'Entertainment', color: '#ec4899', icon: '🎬' },
-  { name: 'Loans', color: '#ef4444', icon: '💳' },
-  { name: 'Health', color: '#f43f5e', icon: '❤️' },
-  { name: 'Personal', color: '#8b5cf6', icon: '👤' },
-  { name: 'Other', color: '#6b7280', icon: '💰' },
-];
-
-const INCOME_CATEGORIES = [
-  { name: 'Salary', color: '#3b82f6', icon: '💼' },
-  { name: 'Allowance', color: '#8b5cf6', icon: '🤝' },
-  { name: 'Scholarship', color: '#10b981', icon: '🎓' },
-  { name: 'Internship', color: '#06b6d4', icon: '🏪' },
-  { name: 'Freelance', color: '#14b8a6', icon: '💻' },
-  { name: 'Gift', color: '#ec4899', icon: '🎁' },
-  { name: 'Pocket Money', color: '#f59e0b', icon: '💵' },
-  { name: 'Property', color: '#6366f1', icon: '🏢' },
-  { name: 'Dividends', color: '#f97316', icon: '📈' },
-  { name: 'Other', color: '#6b7280', icon: '💰' },
-];
+const getCategoryColor = (type) => {
+  return type === 'expense' ? '#ef4444' : '#10b981';
+};
 
 export default function CompleteExpensesUI() {
   const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction } = useTransactions();
+  const {
+    incomeCategories,
+    expenseCategories,
+    loading: categoriesLoading,
+    fetchAllCategories
+  } = useCategories();
+
   const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
 
-  // Fetch transactions on component mount
+  // Fetch transactions and categories on component mount
   useEffect(() => {
     fetchTransactions();
-  }, [fetchTransactions]);
+    fetchAllCategories();
+  }, [fetchTransactions, fetchAllCategories]);
 
   // Calculate summary from transactions
   const summary = useMemo(() => {
@@ -166,11 +177,11 @@ export default function CompleteExpensesUI() {
       type: type,
       category: category,
       date: date,
-      icon: (type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).find(c => c.name === category)?.icon || '💰',
+      icon: getCategoryIcon(category),
     };
 
     if (editingTransaction) {
-      updateTransaction(transactionData);
+      editTransaction(editingTransaction.id, transactionData);
     } else {
       addTransaction(transactionData);
     }
@@ -179,26 +190,23 @@ export default function CompleteExpensesUI() {
   };
 
   const handleDelete = (id) => {
-    deleteTransaction(id);
+    removeTransaction(id);
   };
 
   const renderTransactionItem = ({ item, index }) => {
-    const categories = item.type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-    const categoryData = categories.find(c => c.name === item.category) || categories[9];
-    
     return (
       <Animated.View
         style={[
           styles.transactionItem,
           {
-            opacity: new Animated.Value(1),
-            transform: [{ translateY: new Animated.Value(0) }]
+            opacity: 1,
+            transform: [{ translateY: 0 }]
           }
         ]}
       >
         <View style={styles.transactionLeft}>
-          <View style={[styles.transactionIcon, { backgroundColor: categoryData.color }]}>
-            <Text style={styles.transactionIconText}>{categoryData.icon}</Text>
+          <View style={[styles.transactionIcon, { backgroundColor: getCategoryColor(item.type) }]}>
+            <Text style={styles.transactionIconText}>{getCategoryIcon(item.category)}</Text>
           </View>
           <View style={styles.transactionDetails}>
             <Text style={styles.transactionTitle}>{item.title}</Text>
@@ -243,7 +251,8 @@ export default function CompleteExpensesUI() {
   const renderModal = (type, categories) => {
     const isExpense = type === 'expense';
     const modalVisible = isExpense ? showAddExpenseForm : showAddIncomeForm;
-    
+    const categoryList = categories && categories.length > 0 ? categories : [];
+
     return (
       <Modal
         visible={modalVisible}
@@ -252,7 +261,7 @@ export default function CompleteExpensesUI() {
         onRequestClose={() => closeModal(type)}
       >
         <Animated.View style={[styles.modalOverlay, { opacity: overlayAnim }]}>
-          <Animated.View 
+          <Animated.View
             style={[styles.modalContent, { transform: [{ translateY: modalAnim }] }]}
           >
             {/* Header */}
@@ -294,28 +303,34 @@ export default function CompleteExpensesUI() {
               {/* Category Grid */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Category</Text>
-                <View style={styles.categoryGrid}>
-                  {categories.map((cat) => (
-                    <TouchableOpacity
-                      key={cat.name}
-                      style={[
-                        styles.categoryButton,
-                        category === cat.name && styles.categoryButtonSelected
-                      ]}
-                      onPress={() => setCategory(cat.name)}
-                    >
-                      <View style={[styles.categoryIcon, { backgroundColor: cat.color }]}>
-                        <Text style={styles.categoryIconText}>{cat.icon}</Text>
-                      </View>
-                      <Text style={[
-                        styles.categoryButtonText,
-                        category === cat.name && styles.categoryButtonTextSelected
-                      ]}>
-                        {cat.name}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {categoriesLoading ? (
+                  <Text style={{ color: '#9ca3af' }}>Loading categories...</Text>
+                ) : categoryList.length === 0 ? (
+                  <Text style={{ color: '#9ca3af' }}>No categories available</Text>
+                ) : (
+                  <View style={styles.categoryGrid}>
+                    {categoryList.map((cat) => (
+                      <TouchableOpacity
+                        key={cat.name}
+                        style={[
+                          styles.categoryButton,
+                          category === cat.name && styles.categoryButtonSelected
+                        ]}
+                        onPress={() => setCategory(cat.name)}
+                      >
+                        <View style={[styles.categoryIcon, { backgroundColor: getCategoryColor(type) }]}>
+                          <Text style={styles.categoryIconText}>{getCategoryIcon(cat.name)}</Text>
+                        </View>
+                        <Text style={[
+                          styles.categoryButtonText,
+                          category === cat.name && styles.categoryButtonTextSelected
+                        ]}>
+                          {cat.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
 
               {/* Description Input */}
@@ -523,8 +538,8 @@ export default function CompleteExpensesUI() {
       </View>
 
       {/* Modals */}
-      {renderModal('expense', EXPENSE_CATEGORIES)}
-      {renderModal('income', INCOME_CATEGORIES)}
+      {renderModal('expense', expenseCategories)}
+      {renderModal('income', incomeCategories)}
     </SafeAreaView>
   );
 }
