@@ -20,6 +20,7 @@ export default function AddTransactionScreen() {
   const type = params?.type || 'expense';
   const { addTransaction } = useTransactions();
 
+<<<<<<< HEAD
   const handleSubmit = async (transactionData) => {
     await addTransaction(transactionData);
     Alert.alert(
@@ -27,6 +28,68 @@ export default function AddTransactionScreen() {
       `${transactionData.type === 'income' ? 'Income' : 'Expense'} added successfully!`,
       [{ text: 'OK', onPress: () => router.back() }]
     );
+=======
+  const isIncome = type === 'income';
+
+  
+  const categories = isIncome 
+    ? [
+        { name: 'Salary', icon: '💰', color: '#22c55e' },
+        { name: 'Freelance', icon: '💻', color: '#3b82f6' },
+        { name: 'Business', icon: '💼', color: '#f59e0b' },
+        { name: 'Investment', icon: '📈', color: '#8b5cf6' },
+        { name: 'Gift', icon: '🎁', color: '#ec4899' },
+        { name: 'Other', icon: '💵', color: '#6b7280' }
+      ]
+    : [
+        { name: 'Food', icon: '🍽️', color: '#22c55e' },
+        { name: 'Transport', icon: '🚌', color: '#3b82f6' },
+        { name: 'Shopping', icon: '🛍️', color: '#f59e0b' },
+        { name: 'Bills', icon: '💡', color: '#ef4444' },
+        { name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
+        { name: 'Health', icon: '❤️', color: '#f43f5e' },
+        { name: 'Education', icon: '📚', color: '#06b6d4' },
+        { name: 'Other', icon: '📝', color: '#6b7280' }
+      ];
+
+  const handleSave = async () => {
+    // Validation
+    if (!amount || parseFloat(amount) <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount');
+      return;
+    }
+    if (!category) {
+      Alert.alert('Error', 'Please select a category');
+      return;
+    }
+    if (!date) {
+      Alert.alert('Error', 'Please select a date');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const transactionData = {
+        type: isIncome ? 'income' : 'expense',
+        amount: parseFloat(amount),
+        currency: 'EUR',
+        category,
+        description: description || undefined,
+        date
+      };
+      
+      
+      await addTransaction(transactionData);
+      
+      Alert.alert('Success', `${isIncome ? 'Income' : 'Expense'} added successfully!`, [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to add transaction. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+>>>>>>> dev
   };
 
   return (
