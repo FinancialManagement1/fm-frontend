@@ -13,21 +13,28 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../../constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-// Abir's hook - UI uses this, does not call API directly
-// import { useScan } from "../../hooks/useScan";
+import { useRouter } from "expo-router";
+import { useAiScan, AuthError } from "../../hooks/useAiScan";
 
 export default function ScannerScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [selectedImage, setSelectedImage] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
-  const [editedData, setEditedData] = useState({});
   const [showRawText, setShowRawText] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(null);
 
-  // UI state - Abir's useScan hook provides data via props or context
-  // Fields: scanId, status, amount, amountCandidates, merchant, date,
-  // suggestedCategory, suggestedType, description, currency, confidence, rawText
+  // Use Abir's hook for scan logic
+  const {
+    scanResult,
+    scanLoading,
+    confirmLoading,
+    error,
+    performScan,
+    confirmTransaction,
+    resetScan,
+  } = useAiScan();
+
+  // Local editable state for scan data
   const [scanData, setScanData] = useState({
     scanId: null,
     status: null,
@@ -43,15 +50,48 @@ export default function ScannerScreen() {
     rawText: null,
   });
 
-  const handleImageSelect = (source) => {
+  const handleImageSelect = async (source) => {
     // UI triggers image selection - Abir's hook handles API
     setSelectedImage(source);
-    // setIsLoading will be controlled by useScan hook
+
+    // Prepare image file for Abir's hook
+    const imageFile = {
+      uri: source === "camera" ? "camera://capture" : "gallery://select",
+      mimeType: "image/jpeg",
+      fileName: "receipt.jpg",
+    };
+
+    try {
+      const result = await performScan(imageFile, "receipt");
+      // Map Abir's scanResult to local editable state
+      if (result) {
+        setScanData({
+          scanId: result.scanId || null,
+          status: result.status || null,
+          amount: result.amount || null,
+          amountCandidates: result.amountCandidates || [],
+          merchant: result.merchant || null,
+          date: result.date || null,
+          suggestedCategory: result.suggestedCategory || null,
+          suggestedType: result.suggestedType || null,
+          description: result.description || null,
+          currency: result.currency || null,
+          confidence: result.confidence || {},
+          rawText: result.rawText || null,
+        });
+      }
+    } catch (err) {
+      if (err instanceof AuthError) {
+        // Redirect to login on auth error
+        router.push("/login");
+      }
+      // Other errors are handled by hook's error state
+    }
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     // UI prepares data - Abir's hook handles API call to /transactions/confirm
-    const finalData = {
+    const confirmData = {
       scanId: scanData.scanId,
       type: scanData.suggestedType,
       amount: selectedAmount || scanData.amount,
@@ -59,8 +99,21 @@ export default function ScannerScreen() {
       date: scanData.date,
       merchant: scanData.merchant,
       description: scanData.description,
+      currency: scanData.currency,
     };
-    // Abir's confirmTransaction(finalData) will be called here
+
+    try {
+      await confirmTransaction(confirmData);
+      // Success - reset and go back to upload screen
+      resetScan();
+      setSelectedImage(null);
+      setSelectedAmount(null);
+    } catch (err) {
+      if (err instanceof AuthError) {
+        router.push("/login");
+      }
+      // Other errors handled by hook's error state
+    }
   };
 
   const getConfidenceColor = (score) => {
@@ -122,8 +175,8 @@ export default function ScannerScreen() {
       <TouchableOpacity
         style={styles.cancelButton}
         onPress={() => {
-          setIsLoading(false);
           setSelectedImage(null);
+          resetScan();
         }}
       >
         <Text style={styles.cancelText}>Cancel</Text>
@@ -445,8 +498,8 @@ export default function ScannerScreen() {
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {!selectedImage && renderUploadScreen()}
-      {selectedImage && isLoading && renderLoadingScreen()}
-      {selectedImage && !isLoading && renderResultScreen()}
+      {selectedImage && scanLoading && renderLoadingScreen()}
+      {selectedImage && !scanLoading && scanResult && renderResultScreen()}
     </View>
   );
 }
