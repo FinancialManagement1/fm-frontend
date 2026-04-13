@@ -35,18 +35,32 @@ const TransactionForm = ({
   const isIncome = transactionType === 'income';
 
   // Use Abir's useCategories hook - NO hardcoded categories
-  const { categories, loading: categoriesLoading, fetchCategories } = useCategories();
+  const { 
+    incomeCategories, 
+    expenseCategories, 
+    loading: categoriesLoading, 
+    fetchIncomeCategories, 
+    fetchExpenseCategories 
+  } = useCategories();
+
+  // Get categories based on transaction type
+  const categories = isIncome ? incomeCategories : expenseCategories;
 
   // Fetch categories when transaction type changes
   useEffect(() => {
     const loadCategories = async () => {
-      const token = await AsyncStorage.getItem('token');
-      if (token) {
-        await fetchCategories(token, transactionType);
+      try {
+        if (isIncome) {
+          await fetchIncomeCategories();
+        } else {
+          await fetchExpenseCategories();
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
       }
     };
     loadCategories();
-  }, [transactionType]);
+  }, [transactionType, isIncome, fetchIncomeCategories, fetchExpenseCategories]);
 
   const handleSave = async () => {
     if (!amount || parseFloat(amount) <= 0) {

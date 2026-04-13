@@ -29,25 +29,10 @@ const CategoryPicker = ({
   type = 'expense',
   loading = false,
 }) => {
-  // Get icon based on category name - visual enhancement only
-  const getCategoryIcon = (name) => {
-    const icons = {
-      'Salary': '💰',
-      'Freelance': '💻',
-      'Business': '💼',
-      'Investment': '📈',
-      'Gift': '🎁',
-      'Other': '📦',
-      'Food': '🍔',
-      'Rent': '🏠',
-      'Transport': '🚗',
-      'Entertainment': '🎬',
-      'Shopping': '🛍️',
-      'Health': '🏥',
-      'Education': '📚',
-      'Utilities': '💡',
-    };
-    return icons[name] || '📦';
+  // Simple icon fallback - no hardcoded category mappings
+  const getCategoryIcon = (categoryName) => {
+    // Use first letter as icon - no hardcoded mappings
+    return categoryName?.charAt(0)?.toUpperCase() || '?';
   };
 
   // Get background color based on category type
