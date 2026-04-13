@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -14,7 +14,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '../hooks/useTransactions';
-import { useCategories } from '../hooks/useCategories';
 
 const getCategoryIcon = (name) => {
   const icons = {
@@ -48,13 +47,28 @@ const getCategoryColor = (type) => {
 };
 
 export default function CompleteExpensesUI() {
-  const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction } = useTransactions();
-  const {
-    incomeCategories,
-    expenseCategories,
-    loading: categoriesLoading,
-    fetchAllCategories
-  } = useCategories();
+  const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction, fetchCategories } = useTransactions();
+  
+  // Local state for categories (using Abir's hook)
+  const [incomeCategories, setIncomeCategories] = useState([]);
+  const [expenseCategories, setExpenseCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
+
+  const fetchAllCategories = useCallback(async () => {
+    setCategoriesLoading(true);
+    try {
+      const [income, expense] = await Promise.all([
+        fetchCategories('income'),
+        fetchCategories('expense')
+      ]);
+      setIncomeCategories(income || []);
+      setExpenseCategories(expense || []);
+    } catch (err) {
+      console.error('fetchAllCategories error:', err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, [fetchCategories]);
 
   const [viewMode, setViewMode] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');

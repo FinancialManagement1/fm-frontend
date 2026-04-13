@@ -5,10 +5,12 @@ import {
   createTransaction,
   updateTransaction,
   deleteTransaction,
+  getCategories,
 } from "../services/transactionService";
 
 export function useTransactions() {
   const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [total, setTotal] = useState(0);
@@ -94,9 +96,24 @@ export function useTransactions() {
     }
   }, []);
 
+  // ── Fetch categories ──
+  const fetchCategories = useCallback(async (type) => {
+    setError(null);
+    try {
+      const token = await getToken();
+      const data = await getCategories(token, type);
+      setCategories(data.items || []);
+      return data.items || [];
+    } catch (err) {
+      console.error("fetchCategories error:", err);
+      setError(err.message);
+    }
+  }, []);
+
   return {
     // ── State ──
     transactions,
+    categories,
     loading,
     error,
     total,
@@ -106,5 +123,6 @@ export function useTransactions() {
     addTransaction,
     editTransaction,
     removeTransaction,
+    fetchCategories,
   };
 }
