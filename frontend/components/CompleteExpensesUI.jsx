@@ -102,7 +102,7 @@ export default function CompleteExpensesUI() {
       (activeFilter === 'expenses' && transaction.type === 'expense') ||
       (activeFilter === 'thisMonth' && new Date(transaction.date).getMonth() === new Date().getMonth());
     
-    const matchesSearch = transaction.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (transaction.description || transaction.category || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -141,7 +141,7 @@ export default function CompleteExpensesUI() {
       setEditingTransaction(transaction);
       setAmount(Math.abs(transaction.amount).toString());
       setCategory(transaction.category);
-      setDescription(transaction.title);
+      setDescription(transaction.description || transaction.category);
       setDate(transaction.date);
     } else {
       setEditingTransaction(null);
@@ -211,7 +211,7 @@ export default function CompleteExpensesUI() {
             <Text style={styles.transactionIconText}>{getCategoryIcon(item.category)}</Text>
           </View>
           <View style={styles.transactionDetails}>
-            <Text style={styles.transactionTitle}>{item.title}</Text>
+            <Text style={styles.transactionTitle}>{item.description || item.category}</Text>
             <Text style={styles.transactionDate}>{item.date}</Text>
           </View>
         </View>
