@@ -174,7 +174,7 @@ export default function CompleteExpensesUI() {
 
     const transactionData = {
       id: editingTransaction?.id || Date.now().toString(),
-      title: description || category,
+      description: description || category,
       amount: parseFloat(amount),
       type: type,
       category: category,
