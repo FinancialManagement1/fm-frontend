@@ -15,6 +15,7 @@ import { theme } from "../../constants/theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAiScan, AuthError } from "../../hooks/useAiScan";
+import * as ImagePicker from "expo-image-picker";
 
 export default function ScannerScreen() {
   const insets = useSafeAreaInsets();
@@ -51,23 +52,68 @@ export default function ScannerScreen() {
   });
 
   const handleImageSelect = async (source) => {
-    // UI triggers image selection - Abir's hook handles API
-    setSelectedImage(source);
+    // UI triggers image selection using expo-image-picker
+    let result;
+    
+    if (source === "camera") {
+      // Request camera permission and launch camera
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Camera permission is required to take photos");
+        return;
+      }
+      result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+    } else {
+      // Request gallery permission and launch image picker
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission needed", "Gallery permission is required to select photos");
+        return;
+      }
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+    }
+
+    if (result.canceled) {
+      return;
+    }
+
+    const selectedAsset = result.assets[0];
+    setSelectedImage(selectedAsset.uri);
 
     // Prepare image file for Abir's hook
     const imageFile = {
-      uri: source === "camera" ? "camera://capture" : "gallery://select",
-      mimeType: "image/jpeg",
-      fileName: "receipt.jpg",
+      uri: selectedAsset.uri,
+      mimeType: selectedAsset.mimeType || "image/jpeg",
+      fileName: selectedAsset.fileName || "receipt.jpg",
     };
 
     try {
-      const result = await performScan(imageFile, "receipt");
+      const scanResult = await performScan(imageFile, "receipt");
       // Map Abir's scanResult to local editable state
-      if (result) {
+      if (scanResult) {
         setScanData({
-          scanId: result.scanId || null,
-          status: result.status || null,
+          scanId: scanResult.scanId || null,
+          status: scanResult.status || null,
+          amount: scanResult.amount || null,
+          amountCandidates: scanResult.amountCandidates || [],
+          merchant: scanResult.merchant || null,
+          date: scanResult.date || null,
+          suggestedCategory: scanResult.suggestedCategory || null,
+          suggestedType: scanResult.suggestedType || null,
+          description: scanResult.description || null,
+          currency: scanResult.currency || null,
+          confidence: scanResult.confidence || {},
+          rawText: scanResult.rawText || null,
           amount: result.amount || null,
           amountCandidates: result.amountCandidates || [],
           merchant: result.merchant || null,
