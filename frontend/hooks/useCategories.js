@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../constants/api";
 
+// ── Fetch categories from API (type is REQUIRED) ──
 const fetchCategoriesFromAPI = async (token, type) => {
   if (!type) {
     throw new Error("type is required: must be 'income' or 'expense'");
@@ -26,18 +27,21 @@ const fetchCategoriesFromAPI = async (token, type) => {
   return data.items || [];
 };
 
+// ── useCategories hook ──
 export function useCategories() {
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // ── Get token ──
   const getToken = async () => {
     const token = await AsyncStorage.getItem("token");
     if (!token) throw new Error("No token found. Please login.");
     return token;
   };
 
+  // ── Fetch income categories ──
   const fetchIncomeCategories = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -55,6 +59,7 @@ export function useCategories() {
     }
   }, []);
 
+  // ── Fetch expense categories ──
   const fetchExpenseCategories = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -72,6 +77,7 @@ export function useCategories() {
     }
   }, []);
 
+  // ── Fetch both income and expense categories ──
   const fetchAllCategories = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -97,10 +103,13 @@ export function useCategories() {
   }, []);
 
   return {
+    // ── State ──
     incomeCategories,
     expenseCategories,
     loading,
     error,
+
+    // ── Actions ──
     fetchIncomeCategories,
     fetchExpenseCategories,
     fetchAllCategories,
