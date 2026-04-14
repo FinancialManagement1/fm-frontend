@@ -62,11 +62,11 @@ export default function AddTransactionScreen() {
     try {
       // API-compliant payload
       const transactionData = {
-        type: isIncome ? 'income' : 'expense',
+        description: description || category,
         amount: parseFloat(amount),
-        category,
-        description: description || undefined,
-        date
+        type: isIncome ? 'income' : 'expense',
+        category: category,
+        date: date,
       };
       
       

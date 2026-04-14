@@ -57,14 +57,14 @@ const TransactionForm = ({
 
     setLoading(true);
     try {
-      await onSubmit({
-        type: transactionType,
+      const transactionData = {
+        description: description || category,
         amount: parseFloat(amount),
-        currency: 'EUR',
-        category,
-        description: description || undefined,
-        date,
-      });
+        type: transactionType,
+        category: category,
+        date: date,
+      };
+      await onSubmit(transactionData);
     } catch (error) {
       Alert.alert('Error', 'Failed to save transaction. Please try again.');
     } finally {
