@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTransactions } from '../../hooks/useTransactions';
+import { useCategories } from '../../hooks/useCategories';
 
 export default function AddTransactionScreen() {
   const router = useRouter();
@@ -31,26 +32,16 @@ export default function AddTransactionScreen() {
 
   const isIncome = type === 'income';
 
-  
-  const categories = isIncome 
-    ? [
-        { name: 'Salary', icon: '💰', color: '#22c55e' },
-        { name: 'Freelance', icon: '💻', color: '#3b82f6' },
-        { name: 'Business', icon: '💼', color: '#f59e0b' },
-        { name: 'Investment', icon: '📈', color: '#8b5cf6' },
-        { name: 'Gift', icon: '🎁', color: '#ec4899' },
-        { name: 'Other', icon: '💵', color: '#6b7280' }
-      ]
-    : [
-        { name: 'Food', icon: '🍽️', color: '#22c55e' },
-        { name: 'Transport', icon: '🚌', color: '#3b82f6' },
-        { name: 'Shopping', icon: '🛍️', color: '#f59e0b' },
-        { name: 'Bills', icon: '💡', color: '#ef4444' },
-        { name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
-        { name: 'Health', icon: '❤️', color: '#f43f5e' },
-        { name: 'Education', icon: '📚', color: '#06b6d4' },
-        { name: 'Other', icon: '📝', color: '#6b7280' }
-      ];
+  // Use Abir's hook - no hardcoded categories
+  const { incomeCategories, expenseCategories, fetchAllCategories } = useCategories();
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchAllCategories();
+  }, []);
+
+  // Get categories based on type - use item.name from API
+  const categories = isIncome ? incomeCategories : expenseCategories;
 
   const handleSave = async () => {
     // Validation
@@ -69,10 +60,10 @@ export default function AddTransactionScreen() {
 
     setLoading(true);
     try {
+      // API-compliant payload
       const transactionData = {
         type: isIncome ? 'income' : 'expense',
         amount: parseFloat(amount),
-        currency: 'EUR',
         category,
         description: description || undefined,
         date

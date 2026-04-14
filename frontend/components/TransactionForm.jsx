@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import { useCategories } from '../hooks/useCategories';
 
 const TransactionForm = ({
   initialData = {},
@@ -29,26 +30,15 @@ const TransactionForm = ({
 
   const isIncome = transactionType === 'income';
 
-  const incomeCategories = [
-    { name: 'Salary', icon: '💰', color: '#22c55e' },
-    { name: 'Freelance', icon: '💻', color: '#3b82f6' },
-    { name: 'Business', icon: '💼', color: '#f59e0b' },
-    { name: 'Investment', icon: '📈', color: '#8b5cf6' },
-    { name: 'Gift', icon: '🎁', color: '#ec4899' },
-    { name: 'Other', icon: '💵', color: '#6b7280' }
-  ];
+  // Use Abir's hook - no hardcoded categories
+  const { incomeCategories, expenseCategories, fetchAllCategories } = useCategories();
 
-  const expenseCategories = [
-    { name: 'Food', icon: '🍽️', color: '#22c55e' },
-    { name: 'Transport', icon: '🚌', color: '#3b82f6' },
-    { name: 'Shopping', icon: '🛍️', color: '#f59e0b' },
-    { name: 'Bills', icon: '💡', color: '#ef4444' },
-    { name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
-    { name: 'Health', icon: '❤️', color: '#f43f5e' },
-    { name: 'Education', icon: '📚', color: '#06b6d4' },
-    { name: 'Other', icon: '📝', color: '#6b7280' }
-  ];
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchAllCategories();
+  }, []);
 
+  // Get categories based on type - use item.name from API
   const categories = isIncome ? incomeCategories : expenseCategories;
 
   const handleSave = async () => {
