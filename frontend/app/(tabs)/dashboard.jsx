@@ -13,8 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../constants/theme";
 import { getDashboardSummary } from "../../services/dashboardService";
-// TODO: Use Abir's useAuth hook when ready
-// import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../../hooks/useAuth";
 import LogoutButton from "../../components/LogoutButton";
 
 const MOCK_DATA = {
@@ -92,8 +91,8 @@ export default function DashboardScreen() {
   const [data, setData] = useState(MOCK_DATA);
   const [loading, setLoading] = useState(true);
   
-  // TODO: Get logout from Abir's useAuth hook
-  // const { logout } = useAuth();
+  // Use Abir's hook for logout - UI only
+  const { logout } = useAuth();
 
   const currencySymbol = data.currency === "EUR" ? "€" : "$";
   // TEMP FIX (REMOVE WHEN BACKEND BUDGET API READY)
@@ -167,10 +166,7 @@ export default function DashboardScreen() {
             </TouchableOpacity>
             {/* Logout Button - calls Abir's hook function */}
             <LogoutButton 
-              onPress={() => {
-                // TODO: Replace with actual logout from useAuth hook
-                console.log("Logout pressed - waiting for Abir's hook");
-              }}
+              onPress={logout}
               style={styles.logoutBtn}
             />
           </View>

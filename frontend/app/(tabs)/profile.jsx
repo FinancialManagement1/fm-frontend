@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -12,22 +11,26 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../constants/theme";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
+  // Use Abir's hook - UI only, no direct storage access
+  const { logout, isAuthenticated } = useAuth();
+
   // ── Runs every time this tab is opened ──
   useFocusEffect(
     useCallback(() => {
       checkLogin();
-    }, [])
+    }, [isAuthenticated])
   );
 
   const checkLogin = async () => {
-    const token = await AsyncStorage.getItem("token");
-    setIsLoggedIn(!!token);
+    const hasToken = await isAuthenticated();
+    setIsLoggedIn(hasToken);
   };
 
   const handleLogout = async () => {
@@ -37,8 +40,11 @@ export default function ProfileScreen() {
         text: "Logout",
         style: "destructive",
         onPress: async () => {
-          await AsyncStorage.removeItem("token");
-          setIsLoggedIn(false);
+          // Call Abir's hook - UI does not touch storage directly
+          const success = await logout();
+          if (success) {
+            setIsLoggedIn(false);
+          }
         },
       },
     ]);
