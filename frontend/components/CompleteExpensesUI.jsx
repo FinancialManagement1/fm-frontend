@@ -172,14 +172,13 @@ export default function CompleteExpensesUI() {
   const handleSubmit = (type) => {
     if (!amount || !category) return;
 
+    // API-compliant payload (no id, no icon)
     const transactionData = {
-      id: editingTransaction?.id || Date.now().toString(),
       description: description || category,
       amount: parseFloat(amount),
       type: type,
       category: category,
       date: date,
-      icon: getCategoryIcon(category),
     };
 
     if (editingTransaction) {
