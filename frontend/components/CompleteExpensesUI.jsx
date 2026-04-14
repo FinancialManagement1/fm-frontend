@@ -66,7 +66,7 @@ export default function CompleteExpensesUI() {
   useEffect(() => {
     fetchTransactions();
     fetchAllCategories();
-  }, []);
+  }, [fetchTransactions, fetchAllCategories]);
 
   // Calculate summary from transactions
   const summary = useMemo(() => {
