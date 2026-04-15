@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useCallback, useState } from "react";
 import { API_BASE_URL } from "../constants/api";
 
 // ── Fetch categories from API (type is REQUIRED) ──
@@ -37,6 +37,7 @@ export function useCategories() {
   // ── Get token ──
   const getToken = async () => {
     const token = await AsyncStorage.getItem("token");
+    console.log("TOKEN:", token); // Debug log to check token value
     if (!token) throw new Error("No token found. Please login.");
     return token;
   };
@@ -83,11 +84,18 @@ export function useCategories() {
     setError(null);
     try {
       const token = await getToken();
-
-      const [incomeItems, expenseItems] = await Promise.all([
+      //added filtered results-Amila
+      const [incomeItemsRaw, expenseItemsRaw] = await Promise.all([
         fetchCategoriesFromAPI(token, "income"),
         fetchCategoriesFromAPI(token, "expense"),
       ]);
+
+      const incomeItems = incomeItemsRaw.filter(
+        (item) => item.type === "income",
+      );
+      const expenseItems = expenseItemsRaw.filter(
+        (item) => item.type === "expense",
+      );
 
       setIncomeCategories(incomeItems);
       setExpenseCategories(expenseItems);

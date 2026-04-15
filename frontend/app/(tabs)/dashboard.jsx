@@ -86,20 +86,33 @@ function CircularProgress({ percentage }) {
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [data, setData] = useState(MOCK_DATA);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const currencySymbol = data.currency === "EUR" ? "€" : "$";
+  const currencySymbol = data?.currency === "EUR" ? "€" : "$";
+  //const currencySymbol = data.currency === "EUR" ? "€" : "$";
   // TEMP FIX (REMOVE WHEN BACKEND BUDGET API READY)
   // Backend currently returns monthlyBudget.limit = 0 (not implemented)
   // To prevent negative remaining values in UI,
   // we apply a fallback limit = 5000 ONLY when limit <= 0
   // - Remove this once backend provides real budget via API
-  const safeBudget = {
+  /*const safeBudget = {
     ...data.monthlyBudget,
     limit: data.monthlyBudget.limit > 0 ? data.monthlyBudget.limit : 5000,
   }; // Ensure we don't divide by zero when calculating progress percentage-by amila
+*/
 
+  /*  const safeBudget = {
+    ...(data?.monthlyBudget || {}),
+    limit: data?.monthlyBudget?.limit > 0 ? data.monthlyBudget.limit : 5000,
+  };
+  */
+  const safeBudget = {
+    spent: data?.monthlyBudget?.spent ?? 0,
+    limit: data?.monthlyBudget?.limit > 0 ? data.monthlyBudget.limit : 5000,
+    remaining: data?.monthlyBudget?.remaining ?? 0,
+    progressPercentage: data?.monthlyBudget?.progressPercentage ?? 0,
+  };
   const computedProgress =
     safeBudget.limit > 0 ? (safeBudget.spent / safeBudget.limit) * 100 : 0;
 
@@ -109,7 +122,9 @@ export default function DashboardScreen() {
         setLoading(true);
         try {
           const result = await getDashboardSummary();
-          setData(result);
+          if (result) {
+            setData(result);
+          }
         } catch (error) {
           console.log("Dashboard fetch error:", error);
         } finally {
@@ -146,7 +161,9 @@ export default function DashboardScreen() {
         {/* ── Header ── */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, {data.userName}</Text>
+            <Text style={styles.greeting}>
+              Hello, {data?.userName || "User"}
+            </Text>
             <Text style={styles.subGreeting}>
               Here's your financial overview
             </Text>
@@ -172,7 +189,7 @@ export default function DashboardScreen() {
               </Text>
               <Text style={styles.balanceAmount} numberOfLines={1}>
                 {currencySymbol}
-                {data.summary.totalBalance.toFixed(2)}
+                {data?.summary?.totalBalance?.toFixed(2) || "0.00"}
               </Text>
             </View>
           </View>
@@ -198,7 +215,7 @@ export default function DashboardScreen() {
             </View>
             <Text style={[styles.statAmount, { color: theme.income }]}>
               {currencySymbol}
-              {data.summary.income.toFixed(2)}
+              {data?.summary?.income?.toFixed(2) || "0.00"}
             </Text>
             <View style={[styles.statBar, { backgroundColor: theme.income }]} />
           </View>
@@ -220,7 +237,7 @@ export default function DashboardScreen() {
             </View>
             <Text style={[styles.statAmount, { color: theme.expense }]}>
               {currencySymbol}
-              {data.summary.expenses.toFixed(2)}
+              {data?.summary?.expenses?.toFixed(2) || "0.00"}
             </Text>
             <View
               style={[styles.statBar, { backgroundColor: theme.expense }]}
@@ -250,7 +267,8 @@ export default function DashboardScreen() {
                 {
                   width: `${Math.min(computedProgress, 100)}%`,
                   backgroundColor:
-                    data.monthlyBudget.progressPercentage > 80
+                    //data.monthlyBudget.progressPercentage > 80
+                    safeBudget.progressPercentage > 80
                       ? theme.expense
                       : theme.accent,
                 },

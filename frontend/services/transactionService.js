@@ -70,7 +70,7 @@ export async function updateTransaction(token, transactionId, transactionData) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(transactionData),
-      }
+      },
     );
 
     const data = await response.json();
@@ -97,7 +97,7 @@ export async function deleteTransaction(token, transactionId) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-      }
+      },
     );
 
     const data = await response.json();
