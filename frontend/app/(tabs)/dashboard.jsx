@@ -274,6 +274,14 @@ export default function DashboardScreen() {
             <Text>View Transactions</Text>
           </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+          style={{ padding: 12, backgroundColor: "cyan", borderRadius: 10 }}
+          onPress={() => router.push("/(tabs)/scanner")}
+        >
+          <Text>GO TO SCANNER</Text>
+        </TouchableOpacity>
+
         {/* ── Add Income / Expense Buttons ── */}
         <View style={styles.row}>
           <TouchableOpacity

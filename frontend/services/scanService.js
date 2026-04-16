@@ -1,4 +1,4 @@
-import { API_BASE_URL } from "../constants/api";
+import { API_BASE_URL, ENDPOINTS } from "../constants/api";
 
 // ── Shared error handler ──
 // Parses HTTP errors into consistent thrown messages
@@ -18,8 +18,8 @@ function handleHttpError(response, data) {
 }
 
 // ── Scan a receipt image via multipart/form-data ──
-// imageFile: { uri, mimeType, fileName } — from image picker or camera
-// documentType (optional): "receipt" | "invoice" — helps AI accuracy
+// imageFile: { uri, mimeType, fileName }
+// documentType (optional): "receipt" | "invoice"
 export async function scanReceipt(token, imageFile, documentType) {
   try {
     const formData = new FormData();
@@ -34,9 +34,7 @@ export async function scanReceipt(token, imageFile, documentType) {
       formData.append("documentType", documentType);
     }
 
-    // Do NOT set Content-Type manually — fetch sets it automatically
-    // with the correct multipart boundary when body is FormData
-    const response = await fetch(`${API_BASE_URL}/scan/receipt`, {
+    const response = await fetch(`${API_BASE_URL}${ENDPOINTS.SCAN}`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -44,12 +42,24 @@ export async function scanReceipt(token, imageFile, documentType) {
       body: formData,
     });
 
-    const data = await response.json();
+    // 🔍 Read RAW response first (critical debug step)
+    const text = await response.text();
+    console.log("RAW RESPONSE:", text);
 
-    if (!response.ok) {
-      handleHttpError(response, data);
+    let data = null;
+
+    if (text) {
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.log("Response is not JSON");
+      }
     }
-
+    if (!response.ok) {
+      console.log("STATUS:", response.status);
+      console.log("RESPONSE BODY:", text);
+      throw new Error(`HTTP ${response.status}`);
+    }
     return data;
   } catch (error) {
     console.error("scanReceipt error:", error);
@@ -71,7 +81,20 @@ export async function confirmScan(token, confirmData) {
       body: JSON.stringify(confirmData),
     });
 
-    const data = await response.json();
+    // 🔍 Read RAW response first
+    const text = await response.text();
+    console.log("CONFIRM RAW RESPONSE:", text);
+
+    if (!text) {
+      throw new Error("Empty response from server");
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      throw new Error("Invalid JSON from server: " + text);
+    }
 
     if (!response.ok) {
       handleHttpError(response, data);

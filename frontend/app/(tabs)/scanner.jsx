@@ -1,21 +1,22 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  TextInput,
-  ActivityIndicator,
-  Animated,
-} from "react-native";
+console.log("SCANNER SCREEN LOADED");
+import { AuthError, useAiScan } from "@/hooks/useAiScan";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../../constants/theme";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { useAiScan, AuthError } from "../../hooks/useAiScan";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { theme } from "../../constants/theme";
+import { useCategories } from "../../hooks/useCategories";
 
 export default function ScannerScreen() {
   const insets = useSafeAreaInsets();
@@ -23,6 +24,8 @@ export default function ScannerScreen() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [showRawText, setShowRawText] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(null);
+  const [showAmountOptions, setShowAmountOptions] = useState(false);
+  const [showCategoryOptions, setShowCategoryOptions] = useState(false);
 
   // Use Abir's real hook for scan logic
   const {
@@ -50,16 +53,27 @@ export default function ScannerScreen() {
     confidence: {},
     rawText: null,
   });
+  const [manualCategory, setManualCategory] = useState(null);
+  const { incomeCategories, expenseCategories, fetchAllCategories } =
+    useCategories();
+
+  useEffect(() => {
+    fetchAllCategories();
+  }, []);
 
   const handleImageSelect = async (source) => {
+    console.log("IMAGE SELECT TRIGGERED:", source);
     // UI triggers image selection using expo-image-picker
     let result;
-    
+
     if (source === "camera") {
       // Request camera permission and launch camera
       const { status } = await ImagePicker.requestCameraPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission needed", "Camera permission is required to take photos");
+        Alert.alert(
+          "Permission needed",
+          "Camera permission is required to take photos",
+        );
         return;
       }
       result = await ImagePicker.launchCameraAsync({
@@ -70,9 +84,13 @@ export default function ScannerScreen() {
       });
     } else {
       // Request gallery permission and launch image picker
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Permission needed", "Gallery permission is required to select photos");
+        Alert.alert(
+          "Permission needed",
+          "Gallery permission is required to select photos",
+        );
         return;
       }
       result = await ImagePicker.launchImageLibraryAsync({
@@ -88,6 +106,9 @@ export default function ScannerScreen() {
     }
 
     const selectedAsset = result.assets[0];
+    console.log("RESULT CANCELED:", result.canceled);
+    console.log("RESULT ASSETS:", result.assets);
+    console.log("SELECTED ASSET:", selectedAsset);
     setSelectedImage(selectedAsset.uri);
 
     // Prepare image file for Abir's hook
@@ -98,32 +119,24 @@ export default function ScannerScreen() {
     };
 
     try {
-      const scanResult = await performScan(imageFile, "receipt");
+      console.log("BEFORE performScan");
+      const apiResult = await performScan(imageFile, "receipt");
+      console.log("AFTER performScan");
       // Map Abir's scanResult to local editable state
-      if (scanResult) {
+      if (apiResult) {
         setScanData({
-          scanId: scanResult.scanId || null,
-          status: scanResult.status || null,
-          amount: scanResult.amount || null,
-          amountCandidates: scanResult.amountCandidates || [],
-          merchant: scanResult.merchant || null,
-          date: scanResult.date || null,
-          suggestedCategory: scanResult.suggestedCategory || null,
-          suggestedType: scanResult.suggestedType || null,
-          description: scanResult.description || null,
-          currency: scanResult.currency || null,
-          confidence: scanResult.confidence || {},
-          rawText: scanResult.rawText || null,
-          amount: result.amount || null,
-          amountCandidates: result.amountCandidates || [],
-          merchant: result.merchant || null,
-          date: result.date || null,
-          suggestedCategory: result.suggestedCategory || null,
-          suggestedType: result.suggestedType || null,
-          description: result.description || null,
-          currency: result.currency || null,
-          confidence: result.confidence || {},
-          rawText: result.rawText || null,
+          scanId: apiResult.scanId || null,
+          status: apiResult.status || null,
+          amount: apiResult.amount || null,
+          amountCandidates: apiResult.amountCandidates || [],
+          merchant: apiResult.merchant || null,
+          date: apiResult.date || null,
+          suggestedCategory: apiResult.suggestedCategory || null,
+          suggestedType: apiResult.suggestedType || null,
+          description: apiResult.description || null,
+          currency: apiResult.currency || null,
+          confidence: apiResult.confidence || {},
+          rawText: apiResult.rawText || null,
         });
       }
     } catch (err) {
@@ -139,12 +152,22 @@ export default function ScannerScreen() {
       scanId: scanData.scanId,
       type: scanData.suggestedType,
       amount: selectedAmount || scanData.amount,
-      category: scanData.suggestedCategory,
+      category: manualCategory || scanData.suggestedCategory,
       date: scanData.date,
-      merchant: scanData.merchant,
+      //merchant: scanData.merchant,
       description: scanData.description,
       currency: scanData.currency,
     };
+    if (
+      !scanData.scanId ||
+      !scanData.suggestedType ||
+      !(selectedAmount || scanData.amount) ||
+      !(manualCategory || scanData.suggestedCategory) ||
+      !scanData.date
+    ) {
+      alert("Missing required fields. Please review the scan data.");
+      return;
+    }
 
     try {
       await confirmTransaction(confirmData);
@@ -152,6 +175,7 @@ export default function ScannerScreen() {
       resetScan();
       setSelectedImage(null);
       setSelectedAmount(null);
+      setManualCategory(null);
     } catch (err) {
       if (err instanceof AuthError) {
         router.push("/login");
@@ -186,7 +210,8 @@ export default function ScannerScreen() {
         <Ionicons name="sparkles" size={32} color={theme.accent} />
         <Text style={styles.aiTitle}>AI-Powered Scanning</Text>
         <Text style={styles.aiSubtitle}>
-          Automatically extract merchant, amount, date, and category from your receipts
+          Automatically extract merchant, amount, date, and category from your
+          receipts
         </Text>
       </View>
 
@@ -278,7 +303,7 @@ export default function ScannerScreen() {
                   styles.confidenceBadge,
                   {
                     backgroundColor: getConfidenceColor(
-                      scanData.confidence.merchant
+                      scanData.confidence.merchant,
                     ),
                   },
                 ]}
@@ -303,25 +328,29 @@ export default function ScannerScreen() {
                     styles.amountDropdown,
                     getConfidenceBorder(scanData.confidence?.amount),
                   ]}
+                  onPress={() => {
+                    setShowAmountOptions(!showAmountOptions);
+                    setShowCategoryOptions(false);
+                  }}
                 >
                   <Text style={styles.amountText}>
                     ${selectedAmount || scanData.amount}
                   </Text>
-                  <Ionicons
-                    name="chevron-down"
-                    size={16}
-                    color={theme.text}
-                  />
+                  <Ionicons name="chevron-down" size={16} color={theme.text} />
                 </TouchableOpacity>
-                {scanData.amountCandidates.map((amt, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.dropdownItem}
-                    onPress={() => setSelectedAmount(amt)}
-                  >
-                    <Text style={styles.dropdownItemText}>${amt}</Text>
-                  </TouchableOpacity>
-                ))}
+                {showAmountOptions &&
+                  scanData.amountCandidates.map((amt, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={styles.dropdownItem}
+                      onPress={() => {
+                        setSelectedAmount(amt);
+                        setShowAmountOptions(false); // close after select
+                      }}
+                    >
+                      <Text style={styles.dropdownItemText}>${amt}</Text>
+                    </TouchableOpacity>
+                  ))}
               </View>
             ) : (
               <View
@@ -333,9 +362,15 @@ export default function ScannerScreen() {
                 <TextInput
                   style={styles.fieldInput}
                   value={String(scanData.amount || "")}
-                  onChangeText={(text) =>
-                    setScanData({ ...scanData, amount: parseFloat(text) })
-                  }
+                  onChangeText={(text) => {
+                    const value = parseFloat(text);
+
+                    if (isNaN(value)) {
+                      setScanData({ ...scanData, amount: null });
+                    } else {
+                      setScanData({ ...scanData, amount: value });
+                    }
+                  }}
                   keyboardType="decimal-pad"
                   placeholder="0.00"
                   placeholderTextColor={theme.muted}
@@ -348,7 +383,7 @@ export default function ScannerScreen() {
                   styles.confidenceBadge,
                   {
                     backgroundColor: getConfidenceColor(
-                      scanData.confidence.amount
+                      scanData.confidence.amount,
                     ),
                   },
                 ]}
@@ -369,15 +404,36 @@ export default function ScannerScreen() {
                 getConfidenceBorder(scanData.confidence?.category),
               ]}
             >
-              <TextInput
+              <TouchableOpacity
                 style={styles.fieldInput}
-                value={scanData.suggestedCategory || ""}
-                onChangeText={(text) =>
-                  setScanData({ ...scanData, suggestedCategory: text })
-                }
-                placeholder="Category"
-                placeholderTextColor={theme.muted}
-              />
+                onPress={() => {
+                  setShowCategoryOptions(!showCategoryOptions);
+                  setShowAmountOptions(false);
+                }}
+              >
+                <Text style={{ color: theme.text }}>
+                  {manualCategory ||
+                    scanData.suggestedCategory ||
+                    "Select category"}
+                </Text>
+              </TouchableOpacity>
+
+              {showCategoryOptions &&
+                (scanData.suggestedType === "income"
+                  ? incomeCategories
+                  : expenseCategories
+                )?.map((cat, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setManualCategory(cat.name);
+                      setShowCategoryOptions(false);
+                    }}
+                  >
+                    <Text style={styles.dropdownItemText}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
             </View>
           </View>
         </View>
@@ -394,9 +450,7 @@ export default function ScannerScreen() {
             <TextInput
               style={styles.fieldInput}
               value={scanData.date || ""}
-              onChangeText={(text) =>
-                setScanData({ ...scanData, date: text })
-              }
+              onChangeText={(text) => setScanData({ ...scanData, date: text })}
               placeholder="YYYY-MM-DD"
               placeholderTextColor={theme.muted}
             />
@@ -406,7 +460,7 @@ export default function ScannerScreen() {
                   styles.confidenceBadge,
                   {
                     backgroundColor: getConfidenceColor(
-                      scanData.confidence.date
+                      scanData.confidence.date,
                     ),
                   },
                 ]}
@@ -504,10 +558,7 @@ export default function ScannerScreen() {
         )}
 
         {/* Confirm Button */}
-        <TouchableOpacity
-          style={styles.confirmButton}
-          onPress={handleConfirm}
-        >
+        <TouchableOpacity style={styles.confirmButton} onPress={handleConfirm}>
           <Ionicons name="checkmark" size={20} color="#0D0D0D" />
           <Text style={styles.confirmButtonText}>Confirm Transaction</Text>
         </TouchableOpacity>
@@ -531,6 +582,7 @@ export default function ScannerScreen() {
               confidence: {},
               rawText: null,
             });
+            setManualCategory(null);
           }}
         >
           <Text style={styles.cancelScanText}>Scan Another Receipt</Text>
@@ -543,7 +595,7 @@ export default function ScannerScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {!selectedImage && renderUploadScreen()}
       {selectedImage && scanLoading && renderLoadingScreen()}
-      {selectedImage && !scanLoading && scanResult && renderResultScreen()}
+      {selectedImage && !scanLoading && scanData.scanId && renderResultScreen()}
     </View>
   );
 }

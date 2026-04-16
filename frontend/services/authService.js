@@ -41,5 +41,6 @@ export async function loginUser(credentials) {
     throw new Error(data.message || "Login failed");
   }
   await AsyncStorage.setItem("authToken", data.token);
+  console.log("TOKEN SAVED:", data.token);
   return data;
 }
