@@ -187,15 +187,19 @@ export default function ScannerScreen() {
       // ✅ always send currency
       currency: scanData.currency || "EUR",
     };
+    // Validate required fields
+    if (!finalCategory) {
+      Alert.alert("Error", "Please select a valid category");
+      return;
+    }
     if (
       scanData.status === "failed" ||
       !scanData.scanId ||
       !scanData.suggestedType ||
       !(selectedAmount || scanData.amount) ||
-      !(manualCategory || scanData.suggestedCategory) ||
       !scanData.date
     ) {
-      alert("Missing required fields. Please review the scan data.");
+      Alert.alert("Error", "Missing required fields. Please review the scan data.");
       return;
     }
 
@@ -477,9 +481,7 @@ export default function ScannerScreen() {
                 }}
               >
                 <Text style={{ color: theme.text }}>
-                  {manualCategory ||
-                    scanData.suggestedCategory ||
-                    "Select category"}
+                  {finalCategory || "Select category"}
                 </Text>
               </TouchableOpacity>
 
