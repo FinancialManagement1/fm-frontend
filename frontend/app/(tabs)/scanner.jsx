@@ -574,9 +574,11 @@ export default function ScannerScreen() {
                 styles.typeButton,
                 scanData.suggestedType === "expense" && styles.typeButtonActive,
               ]}
-              onPress={() =>
-                setScanData({ ...scanData, suggestedType: "expense" })
-              }
+              onPress={() => {
+                setScanData({ ...scanData, suggestedType: "expense" });
+                setShowCategoryOptions(false);
+                setManualCategory(null);
+              }}
             >
               <Text
                 style={[
@@ -593,9 +595,11 @@ export default function ScannerScreen() {
                 styles.typeButton,
                 scanData.suggestedType === "income" && styles.typeButtonActive,
               ]}
-              onPress={() =>
-                setScanData({ ...scanData, suggestedType: "income" })
-              }
+              onPress={() => {
+                setScanData({ ...scanData, suggestedType: "income" });
+                setShowCategoryOptions(false);
+                setManualCategory(null);
+              }}
             >
               <Text
                 style={[
