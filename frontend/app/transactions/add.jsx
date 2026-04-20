@@ -43,6 +43,12 @@ export default function AddTransactionScreen() {
   // Get categories based on type
   const categories = isIncome ? incomeCategories : expenseCategories;
 
+  // Debug logging
+  console.log("DEBUG - isIncome:", isIncome);
+  console.log("DEBUG - incomeCategories:", incomeCategories);
+  console.log("DEBUG - expenseCategories:", expenseCategories);
+  console.log("DEBUG - categories (selected):", categories);
+
   // Default icon/color for API categories (since API doesn't provide them)
   const getCategoryIcon = (name) => {
     const icons = {
