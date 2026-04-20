@@ -202,11 +202,22 @@ export default function ScannerScreen() {
     try {
       console.log("CONFIRM DATA:", confirmData);
       await confirmTransaction(confirmData);
-      // Success - reset and go back to upload screen
-      resetScan();
-      setSelectedImage(null);
-      setSelectedAmount(null);
-      setManualCategory(null);
+      // Success - show message and reset
+      Alert.alert(
+        "Success",
+        "Transaction saved successfully",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              resetScan();
+              setSelectedImage(null);
+              setSelectedAmount(null);
+              setManualCategory(null);
+            }
+          }
+        ]
+      );
     } catch (err) {
       console.log("SCAN ERROR:", err);
 
@@ -230,6 +241,14 @@ export default function ScannerScreen() {
 
   const renderUploadScreen = () => (
     <View style={styles.uploadContainer}>
+      {/* Back Button */}
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={24} color={theme.text} />
+      </TouchableOpacity>
+
       <View style={styles.headerBox}>
         <Ionicons name="scan" size={40} color={theme.accent} />
         <Text style={styles.title}>AI Receipt Scanner</Text>
@@ -290,6 +309,15 @@ export default function ScannerScreen() {
       style={styles.resultContainer}
       contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
     >
+      {/* Back Button */}
+      <TouchableOpacity
+        style={styles.backButtonResult}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={24} color={theme.text} />
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
+
       {/* Success Banner */}
       <View style={styles.successBanner}>
         <Ionicons name="checkmark-circle" size={24} color={theme.income} />
@@ -652,12 +680,32 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.bg,
   },
+  // Back Button Styles
+  backButton: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    padding: 8,
+    zIndex: 10,
+  },
+  backButtonResult: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.text,
+  },
   // Upload Screen Styles
   uploadContainer: {
     flex: 1,
     padding: 20,
     justifyContent: "center",
     gap: 16,
+    position: "relative",
   },
   headerBox: {
     alignItems: "center",
