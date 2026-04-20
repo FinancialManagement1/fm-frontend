@@ -166,6 +166,13 @@ export default function ScannerScreen() {
   /////////// Handle confirm button press - validate data and call Abir's confirmTransaction
 
   const handleConfirm = async () => {
+    // Debug logging
+    console.log("DEBUG - finalCategory:", finalCategory);
+    console.log("DEBUG - validCategories:", validCategories);
+    console.log("DEBUG - manualCategory:", manualCategory);
+    console.log("DEBUG - suggestedCategory:", scanData.suggestedCategory);
+    console.log("DEBUG - suggestedType:", scanData.suggestedType);
+
     // UI prepares data - Abir's hook handles API call to /transactions/confirm
     const confirmData = {
       scanId: scanData.scanId,
