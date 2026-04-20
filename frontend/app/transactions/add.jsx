@@ -43,12 +43,6 @@ export default function AddTransactionScreen() {
   // Get categories based on type
   const categories = isIncome ? incomeCategories : expenseCategories;
 
-  // Debug logging
-  console.log("DEBUG - isIncome:", isIncome);
-  console.log("DEBUG - incomeCategories:", incomeCategories);
-  console.log("DEBUG - expenseCategories:", expenseCategories);
-  console.log("DEBUG - categories (selected):", categories);
-
   // Default icon/color for API categories (since API doesn't provide them)
   const getCategoryIcon = (name) => {
     const icons = {
@@ -143,9 +137,9 @@ export default function AddTransactionScreen() {
           <View style={styles.inputSection}>
             <Text style={styles.sectionTitle}>Category</Text>
             <View style={styles.categoryGrid}>
-              {categories.map((cat) => (
+              {categories.map((cat, index) => (
                 <TouchableOpacity
-                  key={cat.name}
+                  key={`${cat.name}-${index}`}
                   style={[
                     styles.categoryCard,
                     category === cat.name && { 
