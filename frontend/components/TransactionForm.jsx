@@ -206,9 +206,9 @@ const TransactionForm = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Category</Text>
         <View style={styles.categoryGrid}>
-          {categories.map((cat) => (
+          {categories.map((cat, index) => (
             <TouchableOpacity
-              key={cat.name}
+              key={`${cat.name}-${index}`}
               style={[
                 styles.categoryCard,
                 category === cat.name && { backgroundColor: cat.color + '30', borderColor: cat.color }

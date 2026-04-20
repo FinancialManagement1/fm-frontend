@@ -323,9 +323,9 @@ export default function CompleteExpensesUI() {
                   <Text style={{ color: '#9ca3af' }}>No categories available</Text>
                 ) : (
                   <View style={styles.categoryGrid}>
-                    {categoryList.map((cat) => (
+                    {categoryList.map((cat, index) => (
                       <TouchableOpacity
-                        key={cat.name}
+                        key={`${cat.name}-${index}`}
                         style={[
                           styles.categoryButton,
                           category === cat.name && styles.categoryButtonSelected
