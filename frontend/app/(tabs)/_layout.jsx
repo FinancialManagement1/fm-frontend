@@ -92,6 +92,18 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="budget"
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <TabIcon
+              name={focused ? "pie-chart" : "pie-chart-outline"}
+              label="Budget"
+              focused={focused}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           tabBarIcon: ({ focused }) => (
