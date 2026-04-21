@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Alert,
   Modal,
 } from 'react-native';
+import { useCategories } from '../hooks/useCategories';
 
 const TransactionForm = ({
   initialData = {},
@@ -29,27 +30,39 @@ const TransactionForm = ({
 
   const isIncome = transactionType === 'income';
 
-  const incomeCategories = [
-    { name: 'Salary', icon: '💰', color: '#22c55e' },
-    { name: 'Freelance', icon: '💻', color: '#3b82f6' },
-    { name: 'Business', icon: '💼', color: '#f59e0b' },
-    { name: 'Investment', icon: '📈', color: '#8b5cf6' },
-    { name: 'Gift', icon: '🎁', color: '#ec4899' },
-    { name: 'Other', icon: '💵', color: '#6b7280' }
-  ];
+  // Use API categories instead of hardcoded
+  const { incomeCategories, expenseCategories, fetchAllCategories } = useCategories();
 
-  const expenseCategories = [
-    { name: 'Food', icon: '🍽️', color: '#22c55e' },
-    { name: 'Transport', icon: '🚌', color: '#3b82f6' },
-    { name: 'Shopping', icon: '🛍️', color: '#f59e0b' },
-    { name: 'Bills', icon: '💡', color: '#ef4444' },
-    { name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
-    { name: 'Health', icon: '❤️', color: '#f43f5e' },
-    { name: 'Education', icon: '📚', color: '#06b6d4' },
-    { name: 'Other', icon: '📝', color: '#6b7280' }
-  ];
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchAllCategories();
+  }, []);
 
+  // Get categories based on type
   const categories = isIncome ? incomeCategories : expenseCategories;
+
+  // Helper to get icon for category
+  const getCategoryIcon = (name) => {
+    const icons = {
+      'Salary': '💰', 'Freelance': '💻', 'Business': '💼', 'Investment': '📈',
+      'Gift': '🎁', 'Other': '💵', 'Food': '🍽️', 'Transport': '🚌',
+      'Shopping': '🛍️', 'Bills': '💡', 'Entertainment': '�', 'Health': '❤️',
+      'Education': '📚', 'Insurance': '�️', 'Mortgage': '🏠'
+    };
+    return icons[name] || '📦';
+  };
+
+  // Helper to get color for category
+  const getCategoryColor = (name) => {
+    const colors = {
+      'Salary': '#22c55e', 'Freelance': '#3b82f6', 'Business': '#f59e0b',
+      'Investment': '#8b5cf6', 'Gift': '#ec4899', 'Other': '#6b7280',
+      'Food': '#22c55e', 'Transport': '#3b82f6', 'Shopping': '#f59e0b',
+      'Bills': '#ef4444', 'Entertainment': '#8b5cf6', 'Health': '#f43f5e',
+      'Education': '#06b6d4', 'Insurance': '#f59e0b', 'Mortgage': '#a855f7'
+    };
+    return colors[name] || '#9ca3af';
+  };
 
   const handleSave = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -206,26 +219,29 @@ const TransactionForm = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Category</Text>
         <View style={styles.categoryGrid}>
-          {categories.map((cat, index) => (
-            <TouchableOpacity
-              key={`${cat.name}-${index}`}
-              style={[
-                styles.categoryCard,
-                category === cat.name && { backgroundColor: cat.color + '30', borderColor: cat.color }
-              ]}
-              onPress={() => setCategory(cat.name)}
-            >
-              <View style={[styles.categoryIconBox, { backgroundColor: cat.color + '20' }]}>
-                <Text style={styles.categoryIcon}>{cat.icon}</Text>
-              </View>
-              <Text style={[
-                styles.categoryText,
-                category === cat.name && { color: cat.color, fontWeight: '600' }
-              ]}>
-                {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {categories.map((cat, index) => {
+            const catColor = getCategoryColor(cat.name);
+            return (
+              <TouchableOpacity
+                key={`${cat.name}-${index}`}
+                style={[
+                  styles.categoryCard,
+                  category === cat.name && { backgroundColor: catColor + '30', borderColor: catColor }
+                ]}
+                onPress={() => setCategory(cat.name)}
+              >
+                <View style={[styles.categoryIconBox, { backgroundColor: catColor + '20' }]}>
+                  <Text style={styles.categoryIcon}>{getCategoryIcon(cat.name)}</Text>
+                </View>
+                <Text style={[
+                  styles.categoryText,
+                  category === cat.name && { color: catColor, fontWeight: '600' }
+                ]}>
+                  {cat.name}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
