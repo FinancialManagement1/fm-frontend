@@ -1,4 +1,3 @@
-console.log("SCANNER SCREEN LOADED");
 import { AuthError, useAiScan } from "@/hooks/useAiScan";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -277,9 +276,9 @@ export default function ScannerScreen() {
       <View style={styles.successBanner}>
         <Ionicons name="checkmark-circle" size={24} color={theme.income} />
         <Text style={styles.successText}>
-          {scanData.status === "success" && "Scan Successful!"}
-          {scanData.status === "partial" && "Review Required"}
-          {scanData.status === "failed" && "Scan Failed"}
+          {scanData.status === "success" ? "Scan Successful!" :
+           scanData.status === "partial" ? "Review Required" :
+           scanData.status === "failed" ? "Scan Failed" : ""}
         </Text>
         <Text style={styles.successSubtext}>Review the details below</Text>
       </View>
