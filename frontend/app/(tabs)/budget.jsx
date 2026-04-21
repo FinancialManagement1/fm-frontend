@@ -8,6 +8,8 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
+  Modal,
+  FlatList,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -18,6 +20,8 @@ export default function BudgetScreen() {
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
   const [budgetLimit, setBudgetLimit] = useState("");
+  const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
 
   const {
     budget,
@@ -32,10 +36,10 @@ export default function BudgetScreen() {
     limit,
   } = useBudget();
 
-  // Fetch on mount - defaults to current month
+  // Fetch when period changes
   useEffect(() => {
-    fetchBudget();
-  }, []);
+    fetchBudget(selectedPeriod);
+  }, [selectedPeriod]);
 
   // Update input when budget loads
   useEffect(() => {
@@ -51,7 +55,7 @@ export default function BudgetScreen() {
       return;
     }
 
-    const result = await saveBudget(null, limit); // null = current month
+    const result = await saveBudget(selectedPeriod, limit);
     if (result) {
       setIsEditing(false);
       Alert.alert("Success", "Budget saved");
@@ -60,7 +64,25 @@ export default function BudgetScreen() {
     }
   };
 
+  function getCurrentPeriod() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+
   const formatCurrency = (amount) => `€${amount?.toFixed(2) || "0.00"}`;
+
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const years = [2024, 2025, 2026, 2027, 2028];
+
+  const handleMonthSelect = (year, monthIndex) => {
+    const period = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
+    setSelectedPeriod(period);
+    setShowMonthPicker(false);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -81,11 +103,12 @@ export default function BudgetScreen() {
 
         {/* Budget Info Card */}
         <View style={styles.card}>
-          {/* Period */}
-          <View style={styles.row}>
+          {/* Period - Clickable */}
+          <TouchableOpacity style={styles.row} onPress={() => setShowMonthPicker(true)}>
             <Ionicons name="calendar-outline" size={18} color={theme.muted} />
-            <Text style={styles.period}>{budget?.period || new Date().toISOString().slice(0, 7)}</Text>
-          </View>
+            <Text style={styles.period}>{selectedPeriod}</Text>
+            <Ionicons name="chevron-down" size={16} color={theme.muted} style={{ marginLeft: 4 }} />
+          </TouchableOpacity>
 
           {/* Limit */}
           <View style={styles.statRow}>
@@ -156,6 +179,58 @@ export default function BudgetScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Month/Year Picker Modal */}
+      <Modal
+        visible={showMonthPicker}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowMonthPicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Month</Text>
+              <TouchableOpacity onPress={() => setShowMonthPicker(false)}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={years}
+              keyExtractor={(item) => String(item)}
+              renderItem={({ item: year }) => (
+                <View style={styles.yearSection}>
+                  <Text style={styles.yearText}>{year}</Text>
+                  <View style={styles.monthsGrid}>
+                    {months.map((month, index) => (
+                      <TouchableOpacity
+                        key={month}
+                        style={[
+                          styles.monthButton,
+                          selectedPeriod === `${year}-${String(index + 1).padStart(2, "0")}` &&
+                            styles.monthButtonActive,
+                        ]}
+                        onPress={() => handleMonthSelect(year, index)}
+                      >
+                        <Text
+                          style={[
+                            styles.monthText,
+                            selectedPeriod === `${year}-${String(index + 1).padStart(2, "0")}` &&
+                              styles.monthTextActive,
+                          ]}
+                        >
+                          {month.slice(0, 3)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -281,6 +356,62 @@ const styles = StyleSheet.create({
   setText: {
     fontSize: 16,
     fontWeight: "600",
+    color: "#0D0D0D",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: theme.card,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: "70%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: theme.text,
+  },
+  yearSection: {
+    marginBottom: 20,
+  },
+  yearText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.accent,
+    marginBottom: 12,
+  },
+  monthsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  monthButton: {
+    width: "22%",
+    paddingVertical: 12,
+    backgroundColor: theme.bg,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  monthButtonActive: {
+    backgroundColor: theme.accent,
+  },
+  monthText: {
+    fontSize: 14,
+    color: theme.text,
+    fontWeight: "500",
+  },
+  monthTextActive: {
     color: "#0D0D0D",
   },
 });
