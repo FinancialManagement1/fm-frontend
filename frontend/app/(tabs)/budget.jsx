@@ -240,7 +240,7 @@ export default function BudgetScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.background,
+    backgroundColor: theme.bg,
   },
   header: {
     flexDirection: "row",
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.surface,
+    backgroundColor: theme.card,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   budgetCard: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.card,
     borderRadius: 20,
     margin: 20,
     padding: 20,
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   editCard: {
-    backgroundColor: theme.surface,
+    backgroundColor: theme.card,
     borderRadius: 20,
     margin: 20,
     padding: 20,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.background,
+    backgroundColor: theme.bg,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 12,

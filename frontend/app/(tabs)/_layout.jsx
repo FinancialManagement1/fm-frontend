@@ -80,18 +80,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="goals"
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon
-              name={focused ? "trophy" : "trophy-outline"}
-              label="Goals"
-              focused={focused}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="budget"
         options={{
           tabBarIcon: ({ focused }) => (
