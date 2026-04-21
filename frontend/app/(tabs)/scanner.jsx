@@ -51,9 +51,9 @@ export default function ScannerScreen() {
     confidence: {},
     rawText: null,
   });
-
   const [manualCategory, setManualCategory] = useState(null);
-  const { incomeCategories, expenseCategories, fetchAllCategories } = useCategories();
+  const { incomeCategories, expenseCategories, fetchAllCategories } =
+    useCategories();
 
   useEffect(() => {
     fetchAllCategories();
@@ -102,6 +102,7 @@ export default function ScannerScreen() {
     };
 
     try {
+      console.log("BEFORE performScan");
       const apiResult = await performScan(imageFile, "receipt");
       console.log("🔴 FULL API RESULT:", apiResult);
 
@@ -132,8 +133,10 @@ export default function ScannerScreen() {
   const validCategories =
     scanData.suggestedType === "income" ? incomeCategories : expenseCategories;
 
+  const suggested = scanData.suggestedCategory;
+
   const matchedCategory = validCategories.find(
-    (c) => c.name.toLowerCase() === (scanData.suggestedCategory || "").toLowerCase(),
+    (c) => c.name.toLowerCase() === (suggested || "").toLowerCase(),
   );
 
   const finalCategory =
@@ -142,6 +145,9 @@ export default function ScannerScreen() {
 
   const handleConfirm = async () => {
     console.log("DEBUG - finalCategory:", finalCategory);
+    console.log("DEBUG - validCategories:", validCategories);
+    console.log("DEBUG - manualCategory:", manualCategory);
+    console.log("DEBUG - suggestedCategory:", scanData.suggestedCategory);
     console.log("DEBUG - suggestedType:", scanData.suggestedType);
 
     const confirmData = {
@@ -158,7 +164,6 @@ export default function ScannerScreen() {
       Alert.alert("Error", "Please select a valid category");
       return;
     }
-
     if (
       scanData.status === "failed" ||
       !scanData.scanId ||
@@ -173,17 +178,21 @@ export default function ScannerScreen() {
     try {
       console.log("CONFIRM DATA:", confirmData);
       await confirmTransaction(confirmData);
-      Alert.alert("Success", "Transaction saved successfully", [
-        {
-          text: "OK",
-          onPress: () => {
-            resetScan();
-            setSelectedImage(null);
-            setSelectedAmount(null);
-            setManualCategory(null);
+      Alert.alert(
+        "Success",
+        "Transaction saved successfully",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              resetScan();
+              setSelectedImage(null);
+              setSelectedAmount(null);
+              setManualCategory(null);
+            },
           },
-        },
-      ]);
+        ]
+      );
     } catch (err) {
       console.log("SCAN ERROR:", err);
       if (err instanceof AuthError) {
@@ -249,7 +258,9 @@ export default function ScannerScreen() {
     <View style={styles.loadingContainer}>
       <ActivityIndicator size="large" color={theme.accent} />
       <Text style={styles.loadingText}>Processing...</Text>
-      <Text style={styles.loadingSubtext}>Scanning... Extracting... Analyzing...</Text>
+      <Text style={styles.loadingSubtext}>
+        Scanning... Extracting... Analyzing...
+      </Text>
       <TouchableOpacity
         style={styles.cancelButton}
         onPress={() => {
@@ -268,7 +279,10 @@ export default function ScannerScreen() {
       contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
     >
       {/* Back Button */}
-      <TouchableOpacity style={styles.backButtonResult} onPress={() => router.back()}>
+      <TouchableOpacity
+        style={styles.backButtonResult}
+        onPress={() => router.back()}
+      >
         <Ionicons name="arrow-back" size={24} color={theme.text} />
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>
@@ -301,7 +315,10 @@ export default function ScannerScreen() {
         {/* Merchant */}
         <View style={styles.fieldContainer}>
           <Text style={styles.fieldLabel}>Merchant</Text>
-          <View style={[styles.fieldInputContainer, getConfidenceBorder(scanData.confidence?.merchant)]}>
+          <View style={[
+            styles.fieldInputContainer,
+            getConfidenceBorder(scanData.confidence?.merchant),
+          ]}>
             <TextInput
               style={styles.fieldInput}
               value={scanData.merchant || ""}
@@ -310,7 +327,10 @@ export default function ScannerScreen() {
               placeholderTextColor={theme.muted}
             />
             {scanData.confidence?.merchant && (
-              <View style={[styles.confidenceBadge, { backgroundColor: getConfidenceColor(scanData.confidence.merchant) }]}>
+              <View style={[
+                styles.confidenceBadge,
+                { backgroundColor: getConfidenceColor(scanData.confidence.merchant) },
+              ]}>
                 <Text style={styles.confidenceText}>
                   {Math.round(scanData.confidence.merchant * 100)}%
                 </Text>
@@ -319,7 +339,7 @@ export default function ScannerScreen() {
           </View>
         </View>
 
-        {/* Amount and Category Row */}
+        {/* ── Amount and Category Row ── */}
         <View style={styles.rowContainer}>
 
           {/* Amount */}
@@ -328,13 +348,18 @@ export default function ScannerScreen() {
             {scanData.amountCandidates?.length > 0 ? (
               <View style={styles.dropdownContainer}>
                 <TouchableOpacity
-                  style={[styles.amountDropdown, getConfidenceBorder(scanData.confidence?.amount)]}
+                  style={[
+                    styles.amountDropdown,
+                    getConfidenceBorder(scanData.confidence?.amount),
+                  ]}
                   onPress={() => {
                     setShowAmountOptions(!showAmountOptions);
                     setShowCategoryOptions(false);
                   }}
                 >
-                  <Text style={styles.amountText}>${selectedAmount || scanData.amount}</Text>
+                  <Text style={styles.amountText}>
+                    ${selectedAmount || scanData.amount}
+                  </Text>
                   <Ionicons name="chevron-down" size={16} color={theme.text} />
                 </TouchableOpacity>
                 {showAmountOptions &&
@@ -352,7 +377,10 @@ export default function ScannerScreen() {
                   ))}
               </View>
             ) : (
-              <View style={[styles.fieldInputContainer, getConfidenceBorder(scanData.confidence?.amount)]}>
+              <View style={[
+                styles.fieldInputContainer,
+                getConfidenceBorder(scanData.confidence?.amount),
+              ]}>
                 <TextInput
                   style={styles.fieldInput}
                   value={String(scanData.amount || "")}
@@ -371,7 +399,10 @@ export default function ScannerScreen() {
               </View>
             )}
             {scanData.confidence?.amount && (
-              <View style={[styles.confidenceBadge, { backgroundColor: getConfidenceColor(scanData.confidence.amount) }]}>
+              <View style={[
+                styles.confidenceBadge,
+                { backgroundColor: getConfidenceColor(scanData.confidence.amount) },
+              ]}>
                 <Text style={styles.confidenceText}>
                   {Math.round(scanData.confidence.amount * 100)}%
                 </Text>
@@ -384,7 +415,10 @@ export default function ScannerScreen() {
             <Text style={styles.fieldLabel}>Category</Text>
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
-                style={[styles.amountDropdown, getConfidenceBorder(scanData.confidence?.category)]}
+                style={[
+                  styles.amountDropdown,
+                  getConfidenceBorder(scanData.confidence?.category),
+                ]}
                 onPress={() => {
                   setShowCategoryOptions(!showCategoryOptions);
                   setShowAmountOptions(false);
@@ -398,7 +432,10 @@ export default function ScannerScreen() {
 
               {showCategoryOptions && (
                 <View style={styles.categoryDropdownList}>
-                  {(scanData.suggestedType === "income" ? incomeCategories : expenseCategories)?.map((cat, index) => (
+                  {(scanData.suggestedType === "income"
+                    ? incomeCategories
+                    : expenseCategories
+                  )?.map((cat, index) => (
                     <TouchableOpacity
                       key={index}
                       style={[
@@ -427,12 +464,15 @@ export default function ScannerScreen() {
           </View>
 
         </View>
-        {/* rowContainer ends here ✅ */}
+        {/* ── rowContainer ends here ✅ ── */}
 
         {/* Date */}
         <View style={styles.fieldContainer}>
           <Text style={styles.fieldLabel}>Date</Text>
-          <View style={[styles.fieldInputContainer, getConfidenceBorder(scanData.confidence?.date)]}>
+          <View style={[
+            styles.fieldInputContainer,
+            getConfidenceBorder(scanData.confidence?.date),
+          ]}>
             <TextInput
               style={styles.fieldInput}
               value={scanData.date || ""}
@@ -441,7 +481,10 @@ export default function ScannerScreen() {
               placeholderTextColor={theme.muted}
             />
             {scanData.confidence?.date && (
-              <View style={[styles.confidenceBadge, { backgroundColor: getConfidenceColor(scanData.confidence.date) }]}>
+              <View style={[
+                styles.confidenceBadge,
+                { backgroundColor: getConfidenceColor(scanData.confidence.date) },
+              ]}>
                 <Text style={styles.confidenceText}>
                   {Math.round(scanData.confidence.date * 100)}%
                 </Text>
@@ -471,18 +514,30 @@ export default function ScannerScreen() {
           <Text style={styles.fieldLabel}>Type</Text>
           <View style={styles.typeContainer}>
             <TouchableOpacity
-              style={[styles.typeButton, scanData.suggestedType === "expense" && styles.typeButtonActive]}
+              style={[
+                styles.typeButton,
+                scanData.suggestedType === "expense" && styles.typeButtonActive,
+              ]}
               onPress={() => setScanData({ ...scanData, suggestedType: "expense" })}
             >
-              <Text style={[styles.typeButtonText, scanData.suggestedType === "expense" && styles.typeButtonTextActive]}>
+              <Text style={[
+                styles.typeButtonText,
+                scanData.suggestedType === "expense" && styles.typeButtonTextActive,
+              ]}>
                 Expense
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.typeButton, scanData.suggestedType === "income" && styles.typeButtonActive]}
+              style={[
+                styles.typeButton,
+                scanData.suggestedType === "income" && styles.typeButtonActive,
+              ]}
               onPress={() => setScanData({ ...scanData, suggestedType: "income" })}
             >
-              <Text style={[styles.typeButtonText, scanData.suggestedType === "income" && styles.typeButtonTextActive]}>
+              <Text style={[
+                styles.typeButtonText,
+                scanData.suggestedType === "income" && styles.typeButtonTextActive,
+              ]}>
                 Income
               </Text>
             </TouchableOpacity>
@@ -512,7 +567,10 @@ export default function ScannerScreen() {
 
         {/* Confirm Button */}
         <TouchableOpacity
-          style={[styles.confirmButton, scanData.status === "failed" && { opacity: 0.5 }]}
+          style={[
+            styles.confirmButton,
+            scanData.status === "failed" && { opacity: 0.5 },
+          ]}
           onPress={() => {
             console.log("CONFIRM BUTTON CLICKED");
             handleConfirm();
@@ -549,7 +607,7 @@ export default function ScannerScreen() {
         </TouchableOpacity>
 
       </View>
-      {/* detailsContainer ends here ✅ */}
+      {/* ── detailsContainer ends here ✅ ── */}
 
     </ScrollView>
   );
@@ -564,67 +622,367 @@ export default function ScannerScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.bg },
-  backButton: { position: "absolute", top: 16, left: 16, padding: 8, zIndex: 10 },
-  backButtonResult: { flexDirection: "row", alignItems: "center", padding: 16, gap: 8 },
-  backButtonText: { fontSize: 16, fontWeight: "600", color: theme.text },
-  uploadContainer: { flex: 1, padding: 20, justifyContent: "center", gap: 16, position: "relative" },
-  headerBox: { alignItems: "center", marginBottom: 20 },
-  title: { fontSize: 24, fontWeight: "800", color: theme.text, marginTop: 12 },
-  subtitle: { fontSize: 14, color: theme.muted, textAlign: "center", marginTop: 8 },
-  aiInfoBox: { backgroundColor: theme.accent, borderRadius: 16, padding: 24, alignItems: "center", marginBottom: 16 },
-  aiTitle: { fontSize: 18, fontWeight: "700", color: "#0D0D0D", marginTop: 12 },
-  aiSubtitle: { fontSize: 13, color: "#0D0D0D", textAlign: "center", marginTop: 8, opacity: 0.8 },
-  uploadButton: { backgroundColor: theme.card, borderRadius: 16, padding: 24, alignItems: "center", borderWidth: 1, borderColor: theme.border, borderStyle: "dashed" },
-  uploadText: { fontSize: 16, fontWeight: "600", color: theme.text, marginTop: 12 },
-  uploadSubtext: { fontSize: 12, color: theme.muted, marginTop: 4 },
-  cameraButton: { backgroundColor: theme.accent, borderRadius: 16, padding: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
-  cameraText: { fontSize: 16, fontWeight: "700", color: "#0D0D0D" },
-  loadingContainer: { flex: 1, alignItems: "center", justifyContent: "center", padding: 20 },
-  loadingText: { fontSize: 18, fontWeight: "700", color: theme.text, marginTop: 20 },
-  loadingSubtext: { fontSize: 14, color: theme.muted, marginTop: 8, textAlign: "center" },
-  cancelButton: { marginTop: 24, paddingVertical: 12, paddingHorizontal: 24, borderRadius: 8, backgroundColor: theme.card },
-  cancelText: { fontSize: 14, color: theme.error, fontWeight: "600" },
-  resultContainer: { flex: 1 },
-  successBanner: { backgroundColor: `${theme.income}20`, padding: 16, alignItems: "center", margin: 16, borderRadius: 12, borderWidth: 1, borderColor: theme.income },
-  successText: { fontSize: 16, fontWeight: "700", color: theme.income, marginTop: 8 },
-  successSubtext: { fontSize: 12, color: theme.muted, marginTop: 4 },
-  imagePreviewContainer: { marginHorizontal: 16, marginBottom: 16, borderRadius: 12, overflow: "hidden", backgroundColor: theme.card },
-  imagePlaceholder: { height: 200, alignItems: "center", justifyContent: "center", backgroundColor: theme.input },
-  imagePlaceholderText: { fontSize: 14, color: theme.muted, marginTop: 8 },
-  detailsContainer: { padding: 16 },
-  detailsTitle: { fontSize: 18, fontWeight: "700", color: theme.text, marginBottom: 16 },
-  fieldContainer: { marginBottom: 16 },
-  fieldLabel: { fontSize: 13, fontWeight: "600", color: theme.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 },
-  fieldInputContainer: { flexDirection: "row", alignItems: "center", backgroundColor: theme.card, borderRadius: 12, borderWidth: 2, borderColor: theme.border, paddingHorizontal: 12 },
-  fieldInput: { flex: 1, paddingVertical: 12, fontSize: 15, color: theme.text },
-  multilineInput: { minHeight: 60, textAlignVertical: "top" },
-  confidenceBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginLeft: 8 },
-  confidenceText: { fontSize: 11, fontWeight: "700", color: "#0D0D0D" },
-  highConfidence: { borderColor: theme.income },
-  mediumConfidence: { borderColor: theme.accent },
-  lowConfidence: { borderColor: theme.error },
-  rowContainer: { flexDirection: "row", gap: 12, marginBottom: 16 },
-  dropdownContainer: { position: "relative" },
-  amountDropdown: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: theme.card, borderRadius: 12, borderWidth: 2, borderColor: theme.border, paddingHorizontal: 12, paddingVertical: 12 },
-  amountText: { fontSize: 18, fontWeight: "700", color: theme.accent },
-  categoryText: { fontSize: 15, fontWeight: "600", color: theme.accent },
-  categoryDropdownList: { backgroundColor: theme.card, borderRadius: 12, borderWidth: 1, borderColor: theme.border, marginTop: 4, overflow: "hidden" },
-  dropdownItem: { backgroundColor: theme.card, paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: theme.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  dropdownItemText: { fontSize: 15, color: theme.text },
-  dropdownItemSelected: { backgroundColor: `${theme.accent}20` },
-  dropdownItemTextSelected: { color: theme.accent, fontWeight: "700" },
-  typeContainer: { flexDirection: "row", gap: 12 },
-  typeButton: { flex: 1, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, backgroundColor: theme.card, alignItems: "center", borderWidth: 1, borderColor: theme.border },
-  typeButtonActive: { backgroundColor: theme.accent, borderColor: theme.accent },
-  typeButtonText: { fontSize: 14, fontWeight: "600", color: theme.text },
-  typeButtonTextActive: { color: "#0D0D0D" },
-  rawTextToggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12, marginTop: 8, marginBottom: 8 },
-  rawTextToggleText: { fontSize: 13, color: theme.muted, fontWeight: "600" },
-  rawTextContainer: { backgroundColor: theme.card, borderRadius: 12, padding: 12, marginBottom: 16 },
-  rawText: { fontSize: 11, color: theme.muted, fontFamily: "monospace", lineHeight: 16 },
-  confirmButton: { backgroundColor: theme.accent, borderRadius: 16, paddingVertical: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 8 },
-  confirmButtonText: { fontSize: 16, fontWeight: "700", color: "#0D0D0D" },
-  cancelScanButton: { paddingVertical: 16, alignItems: "center", marginTop: 8 },
-  cancelScanText: { fontSize: 14, color: theme.muted, fontWeight: "600" },
+  root: {
+    flex: 1,
+    backgroundColor: theme.bg,
+  },
+  backButton: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    padding: 8,
+    zIndex: 10,
+  },
+  backButtonResult: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.text,
+  },
+  uploadContainer: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+    gap: 16,
+    position: "relative",
+  },
+  headerBox: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: theme.text,
+    marginTop: 12,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: theme.muted,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  aiInfoBox: {
+    backgroundColor: theme.accent,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  aiTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#0D0D0D",
+    marginTop: 12,
+  },
+  aiSubtitle: {
+    fontSize: 13,
+    color: "#0D0D0D",
+    textAlign: "center",
+    marginTop: 8,
+    opacity: 0.8,
+  },
+  uploadButton: {
+    backgroundColor: theme.card,
+    borderRadius: 16,
+    padding: 24,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderStyle: "dashed",
+  },
+  uploadText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: theme.text,
+    marginTop: 12,
+  },
+  uploadSubtext: {
+    fontSize: 12,
+    color: theme.muted,
+    marginTop: 4,
+  },
+  cameraButton: {
+    backgroundColor: theme.accent,
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  cameraText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0D0D0D",
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.text,
+    marginTop: 20,
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: theme.muted,
+    marginTop: 8,
+    textAlign: "center",
+  },
+  cancelButton: {
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    backgroundColor: theme.card,
+  },
+  cancelText: {
+    fontSize: 14,
+    color: theme.error,
+    fontWeight: "600",
+  },
+  resultContainer: {
+    flex: 1,
+  },
+  successBanner: {
+    backgroundColor: `${theme.income}20`,
+    padding: 16,
+    alignItems: "center",
+    margin: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.income,
+  },
+  successText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: theme.income,
+    marginTop: 8,
+  },
+  successSubtext: {
+    fontSize: 12,
+    color: theme.muted,
+    marginTop: 4,
+  },
+  imagePreviewContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+    backgroundColor: theme.card,
+  },
+  imagePlaceholder: {
+    height: 200,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.input,
+  },
+  imagePlaceholderText: {
+    fontSize: 14,
+    color: theme.muted,
+    marginTop: 8,
+  },
+  detailsContainer: {
+    padding: 16,
+  },
+  detailsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.text,
+    marginBottom: 16,
+  },
+  fieldContainer: {
+    marginBottom: 16,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: theme.muted,
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  fieldInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.card,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+  },
+  fieldInput: {
+    flex: 1,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: theme.text,
+  },
+  multilineInput: {
+    minHeight: 60,
+    textAlignVertical: "top",
+  },
+  confidenceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  confidenceText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#0D0D0D",
+  },
+  highConfidence: {
+    borderColor: theme.income,
+  },
+  mediumConfidence: {
+    borderColor: theme.accent,
+  },
+  lowConfidence: {
+    borderColor: theme.error,
+  },
+  rowContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  dropdownContainer: {
+    position: "relative",
+  },
+  amountDropdown: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: theme.card,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: theme.border,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  amountText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.accent,
+  },
+  categoryText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: theme.accent,
+  },
+  categoryDropdownList: {
+    backgroundColor: theme.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: theme.border,
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  dropdownItem: {
+    backgroundColor: theme.card,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dropdownItemText: {
+    fontSize: 15,
+    color: theme.text,
+  },
+  dropdownItemSelected: {
+    backgroundColor: `${theme.accent}20`,
+  },
+  dropdownItemTextSelected: {
+    color: theme.accent,
+    fontWeight: "700",
+  },
+  typeContainer: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  typeButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: theme.card,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.border,
+  },
+  typeButtonActive: {
+    backgroundColor: theme.accent,
+    borderColor: theme.accent,
+  },
+  typeButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: theme.text,
+  },
+  typeButtonTextActive: {
+    color: "#0D0D0D",
+  },
+  rawTextToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 12,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  rawTextToggleText: {
+    fontSize: 13,
+    color: theme.muted,
+    fontWeight: "600",
+  },
+  rawTextContainer: {
+    backgroundColor: theme.card,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  rawText: {
+    fontSize: 11,
+    color: theme.muted,
+    fontFamily: "monospace",
+    lineHeight: 16,
+  },
+  confirmButton: {
+    backgroundColor: theme.accent,
+    borderRadius: 16,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0D0D0D",
+  },
+  cancelScanButton: {
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  cancelScanText: {
+    fontSize: 14,
+    color: theme.muted,
+    fontWeight: "600",
+  },
 });
