@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
@@ -22,17 +23,23 @@ export default function ExpensesScreen() {
     editTransaction,
     removeTransaction,
   } = useTransactions();
-  const [filter, setFilter] = useState("all");
+
+  const { type } = useLocalSearchParams();
+  const [filter, setFilter] = useState(type || "all");
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState("list");
   const router = useRouter();
 
-  // Fetch transactions on component mount
+  useEffect(() => {
+    if (type) {
+      setFilter(type);
+    }
+  }, [type]);
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  // Calculate summary from transactions
   const summary = useMemo(() => {
     const expenses = transactions
       .filter((t) => t.type === "expense")
@@ -119,6 +126,26 @@ export default function ExpensesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
+
+        {/* ── Back Button + Title ── */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={20} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {filter === "income"
+              ? "Income Transactions"
+              : filter === "expense"
+              ? "Expense Transactions"
+              : "All Transactions"}
+          </Text>
+          <View style={{ width: 42 }} />
+        </View>
+
         {/* Summary Cards */}
         <View style={styles.summaryContainer}>
           <View style={[styles.summaryCard, styles.expenseCard]}>
@@ -234,9 +261,16 @@ export default function ExpensesScreen() {
         <FlatList
           data={filteredTransactions}
           renderItem={renderTransactionItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           scrollEnabled={false}
           style={styles.transactionsList}
+          ListEmptyComponent={
+            <View style={{ alignItems: "center", paddingTop: 40 }}>
+              <Text style={{ color: "#9ca3af", fontSize: 16 }}>
+                No {filter === "all" ? "" : filter} transactions found
+              </Text>
+            </View>
+          }
         />
       </ScrollView>
     </SafeAreaView>
@@ -251,51 +285,30 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 48,
+    paddingTop: 16,
     paddingBottom: 20,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 20,
-  },
-  headerLeft: {
-    flex: 1,
+    marginTop: 8,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "700",
     color: "#ffffff",
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#9ca3af",
-    marginTop: 4,
-  },
-  viewToggle: {
-    flexDirection: "row",
+  backBtn: {
+    width: 42,
+    height: 42,
     backgroundColor: "#18181b",
-    padding: 4,
+    borderWidth: 1,
+    borderColor: "#27272a",
     borderRadius: 12,
-    gap: 2,
-  },
-  toggleSquare: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: "center",
     alignItems: "center",
-  },
-  toggleSquareActive: {
-    backgroundColor: "#fbbf24",
-  },
-  toggleIcon: {
-    fontSize: 16,
-    color: "#9ca3af",
-  },
-  toggleIconActive: {
-    color: "#000000",
+    justifyContent: "center",
   },
   summaryContainer: {
     flexDirection: "row",
@@ -345,7 +358,6 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     marginBottom: 20,
-    position: "relative",
   },
   searchInput: {
     backgroundColor: "#18181b",
@@ -392,20 +404,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 20,
   },
-  menuButton: {
+  placeholderLeft: {
     width: 48,
-    height: 48,
-    backgroundColor: "#18181b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  menuButtonText: {
-    fontSize: 20,
-    color: "#9ca3af",
-    fontWeight: "bold",
   },
   calendarNavButton: {
     width: 48,
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   transactionsList: {
-    marginBottom: 112, // Safe area bottom for navigation
+    marginBottom: 112,
   },
   transactionItem: {
     flexDirection: "row",
@@ -463,20 +463,5 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     fontWeight: "bold",
-  },
-  calendarButtonContainer: {
-    marginBottom: 20,
-  },
-  calendarButton: {
-    backgroundColor: "#fbbf24",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  calendarButtonText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });
