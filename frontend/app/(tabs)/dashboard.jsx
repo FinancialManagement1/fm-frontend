@@ -90,15 +90,11 @@ export default function DashboardScreen() {
   const [loading, setLoading] = useState(true);
 
   const currencySymbol = data.currency === "EUR" ? "€" : "$";
-  // TEMP FIX (REMOVE WHEN BACKEND BUDGET API READY)
-  // Backend currently returns monthlyBudget.limit = 0 (not implemented)
-  // To prevent negative remaining values in UI,
-  // we apply a fallback limit = 5000 ONLY when limit <= 0
-  // - Remove this once backend provides real budget via API
+
   const safeBudget = {
     ...data.monthlyBudget,
     limit: data.monthlyBudget.limit > 0 ? data.monthlyBudget.limit : 5000,
-  }; // Ensure we don't divide by zero when calculating progress percentage-by amila
+  };
 
   const computedProgress =
     safeBudget.limit > 0 ? (safeBudget.spent / safeBudget.limit) * 100 : 0;
@@ -126,10 +122,7 @@ export default function DashboardScreen() {
       <View
         style={[
           styles.root,
-          {
-            alignItems: "center",
-            justifyContent: "center",
-          },
+          { alignItems: "center", justifyContent: "center" },
         ]}
       >
         <ActivityIndicator size="large" color={theme.accent} />
@@ -181,16 +174,19 @@ export default function DashboardScreen() {
 
         {/* ── Income & Expenses Row ── */}
         <View style={styles.row}>
-          {/* Income Card */}
-          <View style={[styles.statCard, { borderColor: "#1A3D2B" }]}>
+
+          {/* Income Card — tap to see income transactions */}
+          <TouchableOpacity
+            style={[styles.statCard, { borderColor: "#1A3D2B" }]}
+            activeOpacity={0.8}
+            onPress={() => router.push("/(tabs)/expenses?type=income")}
+          >
             <View style={styles.statHeader}>
               <Text style={styles.statLabel}>Income</Text>
               <View
                 style={[
                   styles.statIconBtn,
-                  {
-                    backgroundColor: "rgba(45,212,160,0.15)",
-                  },
+                  { backgroundColor: "rgba(45,212,160,0.15)" },
                 ]}
               >
                 <Ionicons name="arrow-up" size={16} color={theme.income} />
@@ -201,18 +197,20 @@ export default function DashboardScreen() {
               {data.summary.income.toFixed(2)}
             </Text>
             <View style={[styles.statBar, { backgroundColor: theme.income }]} />
-          </View>
+          </TouchableOpacity>
 
-          {/* Expenses Card */}
-          <View style={[styles.statCard, { borderColor: "#3D1A1A" }]}>
+          {/* Expenses Card — tap to see expense transactions */}
+          <TouchableOpacity
+            style={[styles.statCard, { borderColor: "#3D1A1A" }]}
+            activeOpacity={0.8}
+            onPress={() => router.push("/(tabs)/expenses?type=expense")}
+          >
             <View style={styles.statHeader}>
               <Text style={styles.statLabel}>Expenses</Text>
               <View
                 style={[
                   styles.statIconBtn,
-                  {
-                    backgroundColor: "rgba(255,107,107,0.15)",
-                  },
+                  { backgroundColor: "rgba(255,107,107,0.15)" },
                 ]}
               >
                 <Ionicons name="arrow-down" size={16} color={theme.expense} />
@@ -225,7 +223,8 @@ export default function DashboardScreen() {
             <View
               style={[styles.statBar, { backgroundColor: theme.expense }]}
             />
-          </View>
+          </TouchableOpacity>
+
         </View>
 
         {/* ── Monthly Budget ── */}
@@ -265,15 +264,7 @@ export default function DashboardScreen() {
             </Text>
           </Text>
         </View>
-        {/* ── Pooja missed view transaction button / amila added as a temporary solution ── */}
-        <View style={{ marginBottom: 12 }}>
-          <TouchableOpacity
-            style={{ padding: 12, backgroundColor: "cyan", borderRadius: 10 }}
-            onPress={() => router.push("/transactions")}
-          >
-            <Text>View Transactions</Text>
-          </TouchableOpacity>
-        </View>
+
         {/* ── Add Income / Expense Buttons ── */}
         <View style={styles.row}>
           <TouchableOpacity
@@ -302,6 +293,7 @@ export default function DashboardScreen() {
             <Text style={styles.actionText}>Add{"\n"}Expense</Text>
           </TouchableOpacity>
         </View>
+
       </ScrollView>
     </View>
   );
@@ -473,21 +465,22 @@ const styles = StyleSheet.create({
   actionBtn: {
     flex: 1,
     borderRadius: 18,
-    padding: 18,
+    paddingVertical: 28,
+    paddingHorizontal: 18,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
   },
   actionIcon: {
-    width: 40,
-    height: 40,
+    width: 45,
+    height: 45,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
   },
   actionText: {
     color: theme.text,
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: "700",
     lineHeight: 20,
   },
