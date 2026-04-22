@@ -1,10 +1,8 @@
 import { API_BASE_URL } from "../constants/api";
 
-// ── Get all transactions ──
 export async function getTransactions(token, filters = {}) {
   try {
     const params = new URLSearchParams();
-
     if (filters.type) params.append("type", filters.type);
     if (filters.category) params.append("category", filters.category);
     if (filters.period) params.append("period", filters.period);
@@ -21,11 +19,7 @@ export async function getTransactions(token, filters = {}) {
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to fetch transactions");
-    }
-
+    if (!response.ok) throw new Error(data.message || "Failed to fetch transactions");
     return data;
   } catch (error) {
     console.error("getTransactions error:", error);
@@ -33,7 +27,6 @@ export async function getTransactions(token, filters = {}) {
   }
 }
 
-// ── Create a new transaction ──
 export async function createTransaction(token, transactionData) {
   try {
     const response = await fetch(`${API_BASE_URL}/transactions`, {
@@ -46,11 +39,7 @@ export async function createTransaction(token, transactionData) {
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to create transaction");
-    }
-
+    if (!response.ok) throw new Error(data.message || "Failed to create transaction");
     return data;
   } catch (error) {
     console.error("createTransaction error:", error);
@@ -58,27 +47,19 @@ export async function createTransaction(token, transactionData) {
   }
 }
 
-// ── Update an existing transaction ──
 export async function updateTransaction(token, transactionId, transactionData) {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/transactions/${transactionId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(transactionData),
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(transactionData),
+    });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to update transaction");
-    }
-
+    if (!response.ok) throw new Error(data.message || "Failed to update transaction");
     return data;
   } catch (error) {
     console.error("updateTransaction error:", error);
@@ -86,26 +67,18 @@ export async function updateTransaction(token, transactionId, transactionData) {
   }
 }
 
-// ── Delete a transaction ──
 export async function deleteTransaction(token, transactionId) {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/transactions/${transactionId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/transactions/${transactionId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to delete transaction");
-    }
-
+    if (!response.ok) throw new Error(data.message || "Failed to delete transaction");
     return data;
   } catch (error) {
     console.error("deleteTransaction error:", error);
@@ -113,7 +86,6 @@ export async function deleteTransaction(token, transactionId) {
   }
 }
 
-// ── Get categories ──
 export async function getCategories(token, type) {
   try {
     const url = type
@@ -129,11 +101,7 @@ export async function getCategories(token, type) {
     });
 
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to fetch categories");
-    }
-
+    if (!response.ok) throw new Error(data.message || "Failed to fetch categories");
     return data;
   } catch (error) {
     console.error("getCategories error:", error);

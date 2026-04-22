@@ -1,9 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,34 +11,30 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTransactions } from "../../hooks/useTransactions";
 
 export default function ExpensesScreen() {
   const {
     transactions,
     loading,
-    error,
     fetchTransactions,
-    addTransaction,
-    editTransaction,
-    removeTransaction,
   } = useTransactions();
 
   const { type } = useLocalSearchParams();
   const [filter, setFilter] = useState(type || "all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState("list");
   const router = useRouter();
 
-  useEffect(() => {
-    if (type) {
-      setFilter(type);
-    }
-  }, [type]);
-
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+  // ── Re-fetch EVERY time screen focuses ──
+  useFocusEffect(
+    useCallback(() => {
+      if (type) setFilter(type);
+      const now = new Date();
+      const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      fetchTransactions({ period });
+    }, [])
+  );
 
   const summary = useMemo(() => {
     const expenses = transactions
@@ -47,7 +43,6 @@ export default function ExpensesScreen() {
     const income = transactions
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0);
-
     return {
       totalExpenses: expenses,
       totalIncome: income,
@@ -55,15 +50,17 @@ export default function ExpensesScreen() {
     };
   }, [transactions]);
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesFilter = filter === "all" || transaction.type === filter;
-    const matchesSearch =
-      transaction.description
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredTransactions = transactions
+    .filter((transaction) => {
+      const matchesFilter = filter === "all" || transaction.type === filter;
+      const matchesSearch =
+        transaction.description
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // ← newest first
 
   const renderTransactionItem = ({ item }) => {
     const getCategoryColor = (category) => {
@@ -140,8 +137,8 @@ export default function ExpensesScreen() {
             {filter === "income"
               ? "Income Transactions"
               : filter === "expense"
-              ? "Expense Transactions"
-              : "All Transactions"}
+                ? "Expense Transactions"
+                : "All Transactions"}
           </Text>
           <View style={{ width: 42 }} />
         </View>
@@ -150,14 +147,17 @@ export default function ExpensesScreen() {
         <View style={styles.summaryContainer}>
           <View style={[styles.summaryCard, styles.expenseCard]}>
             <Text style={styles.summaryLabel}>Expenses</Text>
-            <Text style={styles.expenseAmount}>€{summary.totalExpenses}</Text>
+            <Text style={styles.expenseAmount}>
+              €{summary.totalExpenses.toFixed(2)}
+            </Text>
           </View>
           <View style={[styles.summaryCard, styles.incomeCard]}>
             <Text style={styles.summaryLabel}>Income</Text>
-            <Text style={styles.incomeAmount}>€{summary.totalIncome}</Text>
+            <Text style={styles.incomeAmount}>
+              €{summary.totalIncome.toFixed(2)}
+            </Text>
           </View>
           <View style={[styles.summaryCard, styles.balanceCard]}>
-            <Text style={styles.summaryLabel}>Balance</Text>
             <Text
               style={[
                 styles.balanceAmount,
@@ -166,8 +166,9 @@ export default function ExpensesScreen() {
                   : styles.expenseAmount,
               ]}
             >
-              €{Math.abs(summary.balance)}
+              €{Math.abs(summary.balance).toFixed(2)}
             </Text>
+            <Text style={styles.summaryLabel}>Balance</Text>
           </View>
         </View>
 
@@ -187,60 +188,42 @@ export default function ExpensesScreen() {
           <TouchableOpacity
             style={[
               styles.filterTab,
-              filter === "all"
-                ? styles.activeFilterTab
-                : styles.inactiveFilterTab,
+              filter === "all" ? styles.activeFilterTab : styles.inactiveFilterTab,
             ]}
             onPress={() => setFilter("all")}
           >
-            <Text
-              style={[
-                styles.filterText,
-                filter === "all"
-                  ? styles.activeFilterText
-                  : styles.inactiveFilterText,
-              ]}
-            >
+            <Text style={[
+              styles.filterText,
+              filter === "all" ? styles.activeFilterText : styles.inactiveFilterText,
+            ]}>
               All
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.filterTab,
-              filter === "income"
-                ? styles.activeFilterTab
-                : styles.inactiveFilterTab,
+              filter === "income" ? styles.activeFilterTab : styles.inactiveFilterTab,
             ]}
             onPress={() => setFilter("income")}
           >
-            <Text
-              style={[
-                styles.filterText,
-                filter === "income"
-                  ? styles.activeFilterText
-                  : styles.inactiveFilterText,
-              ]}
-            >
+            <Text style={[
+              styles.filterText,
+              filter === "income" ? styles.activeFilterText : styles.inactiveFilterText,
+            ]}>
               Income
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.filterTab,
-              filter === "expense"
-                ? styles.activeFilterTab
-                : styles.inactiveFilterTab,
+              filter === "expense" ? styles.activeFilterTab : styles.inactiveFilterTab,
             ]}
             onPress={() => setFilter("expense")}
           >
-            <Text
-              style={[
-                styles.filterText,
-                filter === "expense"
-                  ? styles.activeFilterText
-                  : styles.inactiveFilterText,
-              ]}
-            >
+            <Text style={[
+              styles.filterText,
+              filter === "expense" ? styles.activeFilterText : styles.inactiveFilterText,
+            ]}>
               Expenses
             </Text>
           </TouchableOpacity>
@@ -257,6 +240,13 @@ export default function ExpensesScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Loading */}
+        {loading && (
+          <View style={{ alignItems: "center", paddingVertical: 20 }}>
+            <Text style={{ color: "#9ca3af" }}>Loading...</Text>
+          </View>
+        )}
+
         {/* Transactions List */}
         <FlatList
           data={filteredTransactions}
@@ -265,11 +255,13 @@ export default function ExpensesScreen() {
           scrollEnabled={false}
           style={styles.transactionsList}
           ListEmptyComponent={
-            <View style={{ alignItems: "center", paddingTop: 40 }}>
-              <Text style={{ color: "#9ca3af", fontSize: 16 }}>
-                No {filter === "all" ? "" : filter} transactions found
-              </Text>
-            </View>
+            !loading ? (
+              <View style={{ alignItems: "center", paddingTop: 40 }}>
+                <Text style={{ color: "#9ca3af", fontSize: 16 }}>
+                  No {filter === "all" ? "" : filter} transactions found
+                </Text>
+              </View>
+            ) : null
           }
         />
       </ScrollView>

@@ -15,15 +15,13 @@ export function useTransactions() {
   const [error, setError] = useState(null);
   const [total, setTotal] = useState(0);
 
-  // ── Get token helper ──
   const getToken = async () => {
     const token = await AsyncStorage.getItem("token");
     if (!token) throw new Error("No token found. Please login.");
     return token;
   };
 
-  // ── Fetch all transactions ──
-  const fetchTransactions = useCallback(async (filters = {}) => {
+  const fetchTransactions = async (filters = {}) => {
     setLoading(true);
     setError(null);
     try {
@@ -37,9 +35,8 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  // ── Create transaction ──
   const addTransaction = useCallback(async (transactionData) => {
     setLoading(true);
     setError(null);
@@ -58,7 +55,6 @@ export function useTransactions() {
     }
   }, []);
 
-  // ── Update transaction ──
   const editTransaction = useCallback(async (transactionId, transactionData) => {
     setLoading(true);
     setError(null);
@@ -78,7 +74,6 @@ export function useTransactions() {
     }
   }, []);
 
-  // ── Delete transaction ──
   const removeTransaction = useCallback(async (transactionId) => {
     setLoading(true);
     setError(null);
@@ -96,7 +91,6 @@ export function useTransactions() {
     }
   }, []);
 
-  // ── Fetch categories ──
   const fetchCategories = useCallback(async (type) => {
     setError(null);
     try {
@@ -111,14 +105,11 @@ export function useTransactions() {
   }, []);
 
   return {
-    // ── State ──
     transactions,
     categories,
     loading,
     error,
     total,
-
-    // ── Actions ──
     fetchTransactions,
     addTransaction,
     editTransaction,
