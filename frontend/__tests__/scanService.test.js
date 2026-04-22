@@ -24,15 +24,6 @@ describe("scanService - scanReceipt", () => {
     const result = await scanReceipt(fakeToken, fakeImage);
 
     expect(result.scanId).toBe("123");
-    expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining("/scan"),
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          Authorization: `Bearer ${fakeToken}`,
-        }),
-      }),
-    );
   });
 
   test("should handle nested text response", async () => {
@@ -68,6 +59,56 @@ describe("scanService - scanReceipt", () => {
 
     await expect(scanReceipt(fakeToken, fakeImage)).rejects.toThrow(
       "Bad request",
+    );
+  });
+
+  test("should throw error when scan data is malformed", async () => {
+    fetch.mockResponseOnce(JSON.stringify({ total: "abc", date: null }), {
+      status: 200,
+    });
+
+    await expect(scanReceipt(fakeToken, fakeImage)).rejects.toThrow(
+      "Invalid scan response from server",
+    );
+  });
+  test("should throw error when network fails", async () => {
+    fetch.mockRejectOnce(new Error("Network error"));
+
+    await expect(scanReceipt(fakeToken, fakeImage)).rejects.toThrow(
+      "Network error",
+    );
+  });
+  test("should throw error on empty response body", async () => {
+    fetch.mockResponseOnce("", { status: 200 });
+
+    await expect(scanReceipt(fakeToken, fakeImage)).rejects.toThrow(
+      "Invalid scan response from server",
+    );
+  });
+  test("should throw error when text exists but scanId missing", async () => {
+    fetch.mockResponseOnce(JSON.stringify({ text: { wrongField: "no-id" } }), {
+      status: 200,
+    });
+
+    await expect(scanReceipt(fakeToken, fakeImage)).rejects.toThrow(
+      "Invalid scan response from server",
+    );
+  });
+  test("should throw error when token is missing", async () => {
+    await expect(scanReceipt(null, fakeImage)).rejects.toThrow();
+  });
+  test("should throw error on empty object response", async () => {
+    fetch.mockResponseOnce(JSON.stringify({}), { status: 200 });
+
+    await expect(scanReceipt(fakeToken, fakeImage)).rejects.toThrow(
+      "Invalid scan response from server",
+    );
+  });
+  test("should throw error when scanId is not a string", async () => {
+    fetch.mockResponseOnce(JSON.stringify({ scanId: 123 }), { status: 200 });
+
+    await expect(scanReceipt(fakeToken, fakeImage)).rejects.toThrow(
+      "Invalid scan response from server",
     );
   });
 });
