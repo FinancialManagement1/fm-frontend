@@ -38,4 +38,17 @@ export const reportService = {
     if (!response.ok) throw new Error(data.message || "Failed to fetch trends");
     return data;
   },
+
+  // GET /reports/categories?period=YYYY-MM
+  // Returns category breakdown data
+  getCategories: async (period) => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE_URL}/reports/categories?period=${period}`, {
+      method: "GET",
+      headers,
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || "Failed to fetch categories");
+    return data;
+  },
 };

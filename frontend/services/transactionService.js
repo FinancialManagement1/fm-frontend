@@ -8,6 +8,8 @@ export async function getTransactions(token, filters = {}) {
     if (filters.type) params.append("type", filters.type);
     if (filters.category) params.append("category", filters.category);
     if (filters.period) params.append("period", filters.period);
+    if (filters.startDate) params.append("startDate", filters.startDate);
+    if (filters.endDate) params.append("endDate", filters.endDate);
 
     const queryString = params.toString();
     const url = `${API_BASE_URL}/transactions${queryString ? `?${queryString}` : ""}`;

@@ -17,6 +17,9 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../constants/theme";
 import { useTransactions } from "../../hooks/useTransactions";
 import { PieChart } from "../../components/PieChartSimple";
+import { LineChart } from "../../components/LineChart";
+import { useBudget } from "../../hooks/useBudget";
+import { useReports } from "../../hooks/useReports";
 
 const { width } = Dimensions.get("window");
 
@@ -31,7 +34,45 @@ export default function ChartsScreen() {
     fetchTransactions,
   } = useTransactions();
 
+  const {
+    budget,
+    loading: budgetLoading,
+    fetchBudget,
+  } = useBudget();
+
+  const {
+    summary,
+    trends,
+    loading: reportsLoading,
+    fetchSummary,
+    fetchTrends,
+  } = useReports();
+
   const [showMonthPicker, setShowMonthPicker] = useState(false);
+
+  // Fetch budget, summary, trends for selected period
+  useEffect(() => {
+    console.log("📅 Selected Period:", selectedPeriod);
+    fetchBudget(selectedPeriod);
+    fetchSummary(selectedPeriod);
+    fetchTrends(selectedPeriod);
+  }, [selectedPeriod]);
+
+  // Debug budget, summary, and categories
+  useEffect(() => {
+    console.log("💰 Budget Data:", JSON.stringify(budget));
+    console.log("💰 Budget Limit:", budget?.limit);
+  }, [budget]);
+
+  useEffect(() => {
+    console.log("📈 Summary Data:", JSON.stringify(summary));
+    console.log("📈 API Income:", summary?.income, "API Expenses:", summary?.expenses);
+  }, [summary]);
+
+  useEffect(() => {
+    console.log("📊 Calculated categoryData:", JSON.stringify(categoryData));
+    console.log("📊 Category Count:", categoryData?.length || 0);
+  }, [categoryData]);
 
   useEffect(() => {
     // Fetch ALL transactions for the selected period (both income and expense)
@@ -39,17 +80,46 @@ export default function ChartsScreen() {
     const startDate = `${year}-${month}-01`;
     const lastDay = new Date(year, month, 0).getDate();
     const endDate = `${year}-${month}-${lastDay}`;
+    console.log("🔄 Fetching transactions for:", startDate, "to", endDate);
     fetchTransactions({ startDate, endDate });
   }, [selectedPeriod]);
+
+  useEffect(() => {
+    console.log("📊 Transactions count:", transactions?.length || 0);
+    console.log("📊 Transactions data:", JSON.stringify(transactions?.slice(0, 3)));
+    const expenseTx = transactions?.filter(t => t.type === 'expense') || [];
+    console.log("📊 Expense transactions:", expenseTx.length);
+    expenseTx.slice(0, 3).forEach(t => {
+      console.log("  -", t.category, "€" + t.amount);
+    });
+  }, [transactions]);
 
   function getCurrentPeriod() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  // Calculate totals from transaction data (same as dashboard)
+  // Filter transactions by selected period on frontend (since backend doesn't filter)
+  const filteredTransactions = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    
+    const [year, month] = selectedPeriod.split("-");
+    const filtered = transactions.filter(t => {
+      if (!t.date) return false;
+      const txDate = new Date(t.date);
+      return txDate.getFullYear() === parseInt(year) && txDate.getMonth() + 1 === parseInt(month);
+    });
+    
+    console.log("🔍 Filtered transactions:", filtered.length, "of", transactions.length, "for", selectedPeriod);
+    return filtered;
+  }, [transactions, selectedPeriod]);
+
+  // Calculate totals from filtered transaction data
   const { income, expenses, balance, categoryData } = useMemo(() => {
-    if (!transactions || transactions.length === 0) {
+    console.log("🔄 useMemo running with", filteredTransactions?.length || 0, "filtered transactions");
+    
+    if (!filteredTransactions || filteredTransactions.length === 0) {
+      console.log("⚠️ No filtered transactions, returning empty");
       return { income: 0, expenses: 0, balance: 0, categoryData: [] };
     }
 
@@ -57,7 +127,7 @@ export default function ChartsScreen() {
     let totalExpenses = 0;
     const categoryMap = {};
 
-    transactions.forEach((transaction) => {
+    filteredTransactions.forEach((transaction) => {
       const amount = Math.abs(transaction.amount || 0);
       
       if (transaction.type === "income") {
@@ -71,6 +141,8 @@ export default function ChartsScreen() {
         categoryMap[category] += amount;
       }
     });
+
+    console.log("📊 Category map:", JSON.stringify(categoryMap));
 
     const colors = [
       "#FF6B6B", "#4ECDC4", "#FFE66D", "#95E1D3", "#AA96DA",
@@ -86,19 +158,25 @@ export default function ChartsScreen() {
       }))
       .sort((a, b) => b.value - a.value);
 
+    console.log("📊 Final catData:", JSON.stringify(catData));
+
     return {
       income: totalIncome,
       expenses: totalExpenses,
       balance: totalIncome - totalExpenses,
       categoryData: catData,
     };
-  }, [transactions]);
+  }, [filteredTransactions]);
 
-  // Prepare pie chart data
+  // Prepare pie chart data from API summary ONLY
+  const apiIncome = summary?.income ?? 0;
+  const apiExpenses = summary?.expenses ?? 0;
+  const apiBalance = summary?.balance ?? 0;
+  
   const pieData = [
-    { name: "Income", value: income || 0, color: theme.income },
-    { name: "Expenses", value: expenses || 0, color: theme.expense },
-    { name: "Balance", value: balance > 0 ? balance : 0, color: theme.accent },
+    { name: "Income", value: apiIncome, color: theme.income },
+    { name: "Expenses", value: apiExpenses, color: theme.expense },
+    { name: "Balance", value: apiBalance > 0 ? apiBalance : 0, color: theme.accent },
   ].filter((item) => item.value > 0);
 
   const formatCurrency = (amount) => {
@@ -109,7 +187,7 @@ export default function ChartsScreen() {
     }
     return `€${value.toFixed(2)}`;
   };
-  const loading = transactionsLoading;
+  const loading = transactionsLoading || budgetLoading || reportsLoading;
   const error = transactionsError;
 
   // Month picker data
@@ -162,7 +240,7 @@ export default function ChartsScreen() {
                 <Ionicons name="arrow-up" size={24} color={theme.income} />
                 <Text style={styles.summaryLabel}>Income</Text>
                 <Text style={[styles.summaryValue, { color: theme.income }]}>
-                  {formatCurrency(income)}
+                  {formatCurrency(apiIncome)}
                 </Text>
               </View>
 
@@ -170,7 +248,7 @@ export default function ChartsScreen() {
                 <Ionicons name="arrow-down" size={24} color={theme.expense} />
                 <Text style={styles.summaryLabel}>Expenses</Text>
                 <Text style={[styles.summaryValue, { color: theme.expense }]}>
-                  {formatCurrency(expenses)}
+                  {formatCurrency(apiExpenses)}
                 </Text>
               </View>
 
@@ -178,7 +256,7 @@ export default function ChartsScreen() {
                 <Ionicons name="wallet" size={24} color={theme.accent} />
                 <Text style={styles.summaryLabel}>Balance</Text>
                 <Text style={[styles.summaryValue, { color: theme.accent }]}>
-                  {formatCurrency(balance)}
+                  {formatCurrency(apiBalance)}
                 </Text>
               </View>
             </ScrollView>
@@ -189,33 +267,51 @@ export default function ChartsScreen() {
                 <PieChart data={pieData} />
               </View>
             )}
-
-            {/* Category Breakdown */}
-            {categoryData.length > 0 && (
+            {/* Category Breakdown - Uses monthly transaction data */}
+            {categoryData?.length > 0 && (
               <View style={styles.categoryCard}>
                 <Text style={styles.categoryTitle}>Category Breakdown</Text>
-                {categoryData.map((item, index) => (
-                  <View key={index} style={styles.categoryRow}>
-                    <View style={styles.categoryLeft}>
-                      <View style={[styles.categoryDot, { backgroundColor: item.color }]} />
-                      <Text style={styles.categoryName}>{item.name}</Text>
-                    </View>
-                    <View style={styles.categoryRight}>
-                      <View style={styles.progressBarContainer}>
-                        <View
-                          style={[
-                            styles.progressBar,
-                            { width: `${item.percentage}%`, backgroundColor: item.color },
-                          ]}
-                        />
+                {categoryData.map((item, index) => {
+                  const colors = [
+                    "#FF6B6B", "#4ECDC4", "#FFE66D", "#95E1D3", "#AA96DA",
+                    "#FCBAD3", "#A8D8EA", "#F7DC6F", "#BB8FCE", "#85C1E2",
+                  ];
+                  const color = item.color || colors[index % colors.length];
+                  const amount = item.value ?? 0;
+                  const percentage = item.percentage ?? 
+                    (expenses > 0 ? Math.round((amount / expenses) * 100) : 0);
+                  return (
+                    <View key={index} style={styles.categoryRow}>
+                      <View style={styles.categoryLeft}>
+                        <View style={[styles.categoryDot, { backgroundColor: color }]} />
+                        <Text style={styles.categoryName}>{item.name || item.category || 'Unknown'}</Text>
                       </View>
-                      <Text style={styles.categoryPercent}>{item.percentage}%</Text>
-                      <Text style={styles.categoryAmount}>{formatCurrency(item.value)}</Text>
+                      <View style={styles.categoryRight}>
+                        <View style={styles.progressBarContainer}>
+                          <View
+                            style={[
+                              styles.progressBar,
+                              { width: `${percentage}%`, backgroundColor: color },
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.categoryPercent}>{percentage}%</Text>
+                        <Text style={styles.categoryAmount}>{formatCurrency(amount)}</Text>
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             )}
+
+            {/* Budget vs Actual Line Chart */}
+            <View style={styles.chartCard}>
+              <Text style={styles.chartTitle}>Budget vs Actual</Text>
+              <LineChart 
+                trends={trends} 
+                budgetLimit={budget?.limit ?? 0} 
+              />
+            </View>
           </>
         )}
 
@@ -363,6 +459,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.card,
     borderRadius: 16,
     margin: 16,
+    padding: 16,
     alignItems: "center",
   },
   chartTitle: {

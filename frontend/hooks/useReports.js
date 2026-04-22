@@ -7,6 +7,7 @@ import { reportService } from "../services/reportService";
 export function useReports() {
   const [summary, setSummary] = useState(null);
   const [trends, setTrends] = useState(null);
+  const [categories, setCategories] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -46,17 +47,40 @@ export function useReports() {
     }
   }, []);
 
+  const fetchCategories = useCallback(async (period) => {
+    console.log("🔄 fetchCategories called with period:", period);
+    setLoading(true);
+    setError(null);
+    try {
+      if (!/^\d{4}-\d{2}$/.test(period)) {
+        throw new Error("Period must be in YYYY-MM format");
+      }
+      const data = await reportService.getCategories(period);
+      console.log("✅ Categories fetched for", period, ":", JSON.stringify(data));
+      setCategories(data);
+      return data;
+    } catch (err) {
+      console.error("❌ fetchCategories error:", err.message);
+      setError(err.message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const fetchAllReports = useCallback(async (period) => {
     setLoading(true);
     setError(null);
     try {
-      const [summaryData, trendsData] = await Promise.all([
+      const [summaryData, trendsData, categoriesData] = await Promise.all([
         reportService.getSummary(period),
         reportService.getTrends(period),
+        reportService.getCategories(period),
       ]);
       setSummary(summaryData);
       setTrends(trendsData);
-      return { summary: summaryData, trends: trendsData };
+      setCategories(categoriesData);
+      return { summary: summaryData, trends: trendsData, categories: categoriesData };
     } catch (err) {
       setError(err.message);
       return null;
@@ -68,14 +92,17 @@ export function useReports() {
   return {
     summary,
     trends,
+    categories,
     loading,
     error,
     fetchSummary,
     fetchTrends,
+    fetchCategories,
     fetchAllReports,
     income: summary?.income || 0,
     expenses: summary?.expenses || 0,
     balance: summary?.balance || 0,
     trendItems: trends?.items || [],
+    categoryItems: categories?.items || categories || [],
   };
 }
