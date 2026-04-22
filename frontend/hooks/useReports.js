@@ -1,3 +1,6 @@
+// Abir's Logic - useReports.js
+// NO UI - Only data fetching
+
 import { useState, useCallback } from "react";
 import { reportService } from "../services/reportService";
 

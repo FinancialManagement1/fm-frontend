@@ -1,3 +1,6 @@
+// Abir's Logic - reportService.js
+// NO UI - Only API calls
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { API_BASE_URL } from "../constants/api";
 
@@ -11,6 +14,7 @@ const getAuthHeaders = async () => {
 };
 
 export const reportService = {
+  // GET /reports/summary?period=YYYY-MM
   getSummary: async (period) => {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/reports/summary?period=${period}`, {
@@ -22,6 +26,8 @@ export const reportService = {
     return data;
   },
 
+  // GET /reports/trends?period=YYYY-MM
+  // Returns cumulative data
   getTrends: async (period) => {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/reports/trends?period=${period}`, {
