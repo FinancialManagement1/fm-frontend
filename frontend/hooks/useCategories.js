@@ -89,10 +89,14 @@ export function useCategories() {
         fetchCategoriesFromAPI(token, "expense"),
       ]);
 
-      setIncomeCategories(incomeItems);
-      setExpenseCategories(expenseItems);
+      // ── Filter by type since backend may return all categories ──
+      const filteredIncome = incomeItems.filter((c) => c.type === "income");
+      const filteredExpense = expenseItems.filter((c) => c.type === "expense");
 
-      return { incomeItems, expenseItems };
+      setIncomeCategories(filteredIncome);
+      setExpenseCategories(filteredExpense);
+
+      return { incomeItems: filteredIncome, expenseItems: filteredExpense };
     } catch (err) {
       console.error("fetchAllCategories error:", err);
       setError(err.message);

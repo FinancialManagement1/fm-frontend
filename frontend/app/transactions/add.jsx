@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTransactions } from '../../hooks/useTransactions';
+import { useCategories } from '../../hooks/useCategories';
 
 export default function AddTransactionScreen() {
   const router = useRouter();
@@ -31,26 +32,38 @@ export default function AddTransactionScreen() {
 
   const isIncome = type === 'income';
 
-  
-  const categories = isIncome 
-    ? [
-        { name: 'Salary', icon: '💰', color: '#22c55e' },
-        { name: 'Freelance', icon: '💻', color: '#3b82f6' },
-        { name: 'Business', icon: '💼', color: '#f59e0b' },
-        { name: 'Investment', icon: '📈', color: '#8b5cf6' },
-        { name: 'Gift', icon: '🎁', color: '#ec4899' },
-        { name: 'Other', icon: '💵', color: '#6b7280' }
-      ]
-    : [
-        { name: 'Food', icon: '🍽️', color: '#22c55e' },
-        { name: 'Transport', icon: '🚌', color: '#3b82f6' },
-        { name: 'Shopping', icon: '🛍️', color: '#f59e0b' },
-        { name: 'Bills', icon: '💡', color: '#ef4444' },
-        { name: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
-        { name: 'Health', icon: '❤️', color: '#f43f5e' },
-        { name: 'Education', icon: '📚', color: '#06b6d4' },
-        { name: 'Other', icon: '📝', color: '#6b7280' }
-      ];
+  // Use API categories instead of hardcoded
+  const { incomeCategories, expenseCategories, fetchAllCategories } = useCategories();
+
+  // Fetch categories on mount
+  useEffect(() => {
+    fetchAllCategories();
+  }, []);
+
+  // Get categories based on type
+  const categories = isIncome ? incomeCategories : expenseCategories;
+
+  // Default icon/color for API categories (since API doesn't provide them)
+  const getCategoryIcon = (name) => {
+    const icons = {
+      'Salary': '💰', 'Freelance': '💻', 'Business': '💼', 'Investment': '📈',
+      'Gift': '🎁', 'Other': '💵', 'Food': '🍽️', 'Transport': '🚌',
+      'Shopping': '🛍️', 'Bills': '💡', 'Entertainment': '🎬', 'Health': '❤️',
+      'Education': '📚'
+    };
+    return icons[name] || '📦';
+  };
+
+  const getCategoryColor = (name) => {
+    const colors = {
+      'Salary': '#22c55e', 'Freelance': '#3b82f6', 'Business': '#f59e0b',
+      'Investment': '#8b5cf6', 'Gift': '#ec4899', 'Other': '#6b7280',
+      'Food': '#22c55e', 'Transport': '#3b82f6', 'Shopping': '#f59e0b',
+      'Bills': '#ef4444', 'Entertainment': '#8b5cf6', 'Health': '#f43f5e',
+      'Education': '#06b6d4'
+    };
+    return colors[name] || '#9ca3af';
+  };
 
   const handleSave = async () => {
     // Validation
@@ -124,24 +137,24 @@ export default function AddTransactionScreen() {
           <View style={styles.inputSection}>
             <Text style={styles.sectionTitle}>Category</Text>
             <View style={styles.categoryGrid}>
-              {categories.map((cat) => (
+              {categories.map((cat, index) => (
                 <TouchableOpacity
-                  key={cat.name}
+                  key={`${cat.name}-${index}`}
                   style={[
                     styles.categoryCard,
                     category === cat.name && { 
-                      backgroundColor: `${cat.color}20`,
-                      borderColor: cat.color 
+                      backgroundColor: `${getCategoryColor(cat.name)}20`,
+                      borderColor: getCategoryColor(cat.name)
                     }
                   ]}
                   onPress={() => setCategory(cat.name)}
                 >
-                  <View style={[styles.categoryIconBox, { backgroundColor: `${cat.color}30` }]}>
-                    <Text style={styles.categoryIcon}>{cat.icon}</Text>
+                  <View style={[styles.categoryIconBox, { backgroundColor: `${getCategoryColor(cat.name)}30` }]}>
+                    <Text style={styles.categoryIcon}>{getCategoryIcon(cat.name)}</Text>
                   </View>
                   <Text style={[
                     styles.categoryCardText,
-                    category === cat.name && { color: cat.color, fontWeight: '600' }
+                    category === cat.name && { color: getCategoryColor(cat.name), fontWeight: '600' }
                   ]}>
                     {cat.name}
                   </Text>
