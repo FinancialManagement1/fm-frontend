@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,6 +27,8 @@ export default function ScannerScreen() {
   const [selectedAmount, setSelectedAmount] = useState(null);
   const [showAmountOptions, setShowAmountOptions] = useState(false);
   const [showCategoryOptions, setShowCategoryOptions] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const {
     scanResult,
@@ -92,7 +95,6 @@ export default function ScannerScreen() {
     if (result.canceled) return;
 
     const selectedAsset = result.assets[0];
-    console.log("SELECTED ASSET:", selectedAsset);
     setSelectedImage(selectedAsset.uri);
 
     const imageFile = {
@@ -102,7 +104,6 @@ export default function ScannerScreen() {
     };
 
     try {
-      console.log("BEFORE performScan");
       const apiResult = await performScan(imageFile, "receipt");
       console.log("🔴 FULL API RESULT:", apiResult);
 
@@ -122,6 +123,11 @@ export default function ScannerScreen() {
           rawText: apiResult.rawText || null,
         });
         setSelectedAmount(apiResult.amount || null);
+
+        // ── Set calendar date from API result ──
+        if (apiResult.date) {
+          setSelectedDate(new Date(apiResult.date));
+        }
       }
     } catch (err) {
       if (err instanceof AuthError) {
@@ -144,12 +150,6 @@ export default function ScannerScreen() {
     (matchedCategory ? matchedCategory.name : validCategories[0]?.name);
 
   const handleConfirm = async () => {
-    console.log("DEBUG - finalCategory:", finalCategory);
-    console.log("DEBUG - validCategories:", validCategories);
-    console.log("DEBUG - manualCategory:", manualCategory);
-    console.log("DEBUG - suggestedCategory:", scanData.suggestedCategory);
-    console.log("DEBUG - suggestedType:", scanData.suggestedType);
-
     const confirmData = {
       scanId: scanData.scanId,
       type: (scanData.suggestedType || "").toLowerCase(),
@@ -194,7 +194,6 @@ export default function ScannerScreen() {
         ]
       );
     } catch (err) {
-      console.log("SCAN ERROR:", err);
       if (err instanceof AuthError) {
         router.push("/login");
       }
@@ -278,14 +277,28 @@ export default function ScannerScreen() {
       style={styles.resultContainer}
       contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
     >
-      {/* Back Button */}
-      <TouchableOpacity
-        style={styles.backButtonResult}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={24} color={theme.text} />
-        <Text style={styles.backButtonText}>Back</Text>
-      </TouchableOpacity>
+      {/* ── Top Bar: Back + Confirm ── */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backButtonResult}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color={theme.text} />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.confirmTopBtn,
+            scanData.status === "failed" && { opacity: 0.5 },
+          ]}
+          onPress={handleConfirm}
+          disabled={scanData.status === "failed"}
+        >
+          <Ionicons name="checkmark" size={18} color="#0D0D0D" />
+          <Text style={styles.confirmTopBtnText}>Confirm</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Success Banner */}
       <View style={styles.successBanner}>
@@ -298,15 +311,7 @@ export default function ScannerScreen() {
         <Text style={styles.successSubtext}>Review the details below</Text>
       </View>
 
-      {/* Receipt Image Preview */}
-      {selectedImage && (
-        <View style={styles.imagePreviewContainer}>
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="receipt-outline" size={60} color={theme.muted} />
-            <Text style={styles.imagePlaceholderText}>Receipt Image</Text>
-          </View>
-        </View>
-      )}
+      
 
       {/* Extracted Details */}
       <View style={styles.detailsContainer}>
@@ -339,7 +344,7 @@ export default function ScannerScreen() {
           </View>
         </View>
 
-        {/* ── Amount and Category Row ── */}
+        {/* Amount and Category Row */}
         <View style={styles.rowContainer}>
 
           {/* Amount */}
@@ -398,16 +403,6 @@ export default function ScannerScreen() {
                 />
               </View>
             )}
-            {scanData.confidence?.amount && (
-              <View style={[
-                styles.confidenceBadge,
-                { backgroundColor: getConfidenceColor(scanData.confidence.amount) },
-              ]}>
-                <Text style={styles.confidenceText}>
-                  {Math.round(scanData.confidence.amount * 100)}%
-                </Text>
-              </View>
-            )}
           </View>
 
           {/* Category */}
@@ -464,22 +459,27 @@ export default function ScannerScreen() {
           </View>
 
         </View>
-        {/* ── rowContainer ends here ✅ ── */}
 
-        {/* Date */}
+        {/* ── Date with Calendar ── */}
         <View style={styles.fieldContainer}>
           <Text style={styles.fieldLabel}>Date</Text>
-          <View style={[
-            styles.fieldInputContainer,
-            getConfidenceBorder(scanData.confidence?.date),
-          ]}>
-            <TextInput
-              style={styles.fieldInput}
-              value={scanData.date || ""}
-              onChangeText={(text) => setScanData({ ...scanData, date: text })}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={theme.muted}
-            />
+          <TouchableOpacity
+            style={[
+              styles.fieldInputContainer,
+              getConfidenceBorder(scanData.confidence?.date),
+              { paddingVertical: 12 },
+            ]}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={[styles.fieldInput, { paddingVertical: 0 }]}>
+              {scanData.date
+                ? new Date(scanData.date).toLocaleDateString("en-GB", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })
+                : "Select Date"}
+            </Text>
             {scanData.confidence?.date && (
               <View style={[
                 styles.confidenceBadge,
@@ -490,7 +490,8 @@ export default function ScannerScreen() {
                 </Text>
               </View>
             )}
-          </View>
+            <Ionicons name="calendar-outline" size={20} color={theme.muted} style={{ marginLeft: 8 }} />
+          </TouchableOpacity>
         </View>
 
         {/* Description */}
@@ -565,23 +566,7 @@ export default function ScannerScreen() {
           </View>
         )}
 
-        {/* Confirm Button */}
-        <TouchableOpacity
-          style={[
-            styles.confirmButton,
-            scanData.status === "failed" && { opacity: 0.5 },
-          ]}
-          onPress={() => {
-            console.log("CONFIRM BUTTON CLICKED");
-            handleConfirm();
-          }}
-          disabled={scanData.status === "failed"}
-        >
-          <Ionicons name="checkmark" size={20} color="#0D0D0D" />
-          <Text style={styles.confirmButtonText}>Confirm Transaction</Text>
-        </TouchableOpacity>
-
-        {/* Cancel Button */}
+        {/* Scan Another Receipt */}
         <TouchableOpacity
           style={styles.cancelScanButton}
           onPress={() => {
@@ -607,7 +592,6 @@ export default function ScannerScreen() {
         </TouchableOpacity>
 
       </View>
-      {/* ── detailsContainer ends here ✅ ── */}
 
     </ScrollView>
   );
@@ -617,6 +601,120 @@ export default function ScannerScreen() {
       {!selectedImage && renderUploadScreen()}
       {selectedImage && scanLoading && renderLoadingScreen()}
       {selectedImage && !scanLoading && scanData.scanId && renderResultScreen()}
+
+      {/* ── Calendar Modal ── */}
+      <Modal
+        visible={showDatePicker}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Text style={styles.modalCloseButton}>✕</Text>
+              </TouchableOpacity>
+              <Text style={styles.modalTitle}>Select Date</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  const year = selectedDate.getFullYear();
+                  const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
+                  const day = String(selectedDate.getDate()).padStart(2, "0");
+                  const dateStr = `${year}-${month}-${day}`;
+                  setScanData({ ...scanData, date: dateStr });
+                  setShowDatePicker(false);
+                }}
+              >
+                <Text style={styles.modalDoneButton}>Done</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Calendar */}
+            <View style={styles.calendarContainer}>
+              {/* Month Navigation */}
+              <View style={styles.monthNav}>
+                <TouchableOpacity
+                  onPress={() => {
+                    const newDate = new Date(selectedDate);
+                    newDate.setMonth(newDate.getMonth() - 1);
+                    setSelectedDate(newDate);
+                  }}
+                >
+                  <Text style={styles.navArrow}>←</Text>
+                </TouchableOpacity>
+                <Text style={styles.monthText}>
+                  {selectedDate.toLocaleDateString("en-US", {
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    const newDate = new Date(selectedDate);
+                    newDate.setMonth(newDate.getMonth() + 1);
+                    setSelectedDate(newDate);
+                  }}
+                >
+                  <Text style={styles.navArrow}>→</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Day Headers */}
+              <View style={styles.dayHeaders}>
+                {["S", "M", "T", "W", "T", "F", "S"].map((day, index) => (
+                  <Text key={index} style={styles.dayHeader}>{day}</Text>
+                ))}
+              </View>
+
+              {/* Calendar Grid */}
+              <View style={styles.calendarGrid}>
+                {(() => {
+                  const daysInMonth = new Date(
+                    selectedDate.getFullYear(),
+                    selectedDate.getMonth() + 1,
+                    0
+                  ).getDate();
+                  const firstDay = new Date(
+                    selectedDate.getFullYear(),
+                    selectedDate.getMonth(),
+                    1
+                  ).getDay();
+                  const days = [];
+
+                  for (let i = 0; i < firstDay; i++) {
+                    days.push(<View key={`empty-${i}`} style={styles.calendarDay} />);
+                  }
+
+                  for (let day = 1; day <= daysInMonth; day++) {
+                    const isSelected = day === selectedDate.getDate();
+                    days.push(
+                      <TouchableOpacity
+                        key={day}
+                        style={[styles.calendarDay, isSelected && styles.selectedDay]}
+                        onPress={() => {
+                          const newDate = new Date(selectedDate);
+                          newDate.setDate(day);
+                          setSelectedDate(newDate);
+                        }}
+                      >
+                        <Text style={[
+                          styles.calendarDayText,
+                          isSelected && styles.selectedDayText,
+                        ]}>
+                          {day}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  }
+                  return days;
+                })()}
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -633,16 +731,38 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 10,
   },
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 8,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
   backButtonResult: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 16,
+    padding: 8,
     gap: 8,
   },
   backButtonText: {
     fontSize: 16,
     fontWeight: "600",
     color: theme.text,
+  },
+  confirmTopBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: theme.accent,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  confirmTopBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0D0D0D",
   },
   uploadContainer: {
     flex: 1,
@@ -774,24 +894,6 @@ const styles = StyleSheet.create({
     color: theme.muted,
     marginTop: 4,
   },
-  imagePreviewContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 12,
-    overflow: "hidden",
-    backgroundColor: theme.card,
-  },
-  imagePlaceholder: {
-    height: 200,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.input,
-  },
-  imagePlaceholderText: {
-    fontSize: 14,
-    color: theme.muted,
-    marginTop: 8,
-  },
   detailsContainer: {
     padding: 16,
   },
@@ -842,15 +944,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#0D0D0D",
   },
-  highConfidence: {
-    borderColor: theme.income,
-  },
-  mediumConfidence: {
-    borderColor: theme.accent,
-  },
-  lowConfidence: {
-    borderColor: theme.error,
-  },
+  highConfidence: { borderColor: theme.income },
+  mediumConfidence: { borderColor: theme.accent },
+  lowConfidence: { borderColor: theme.error },
   rowContainer: {
     flexDirection: "row",
     gap: 12,
@@ -960,21 +1056,6 @@ const styles = StyleSheet.create({
     fontFamily: "monospace",
     lineHeight: 16,
   },
-  confirmButton: {
-    backgroundColor: theme.accent,
-    borderRadius: 16,
-    paddingVertical: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    marginTop: 8,
-  },
-  confirmButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0D0D0D",
-  },
   cancelScanButton: {
     paddingVertical: 16,
     alignItems: "center",
@@ -984,5 +1065,95 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.muted,
     fontWeight: "600",
+  },
+  // ── Calendar Modal styles ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: theme.card,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalCloseButton: {
+    fontSize: 20,
+    color: theme.muted,
+    padding: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: theme.text,
+  },
+  modalDoneButton: {
+    fontSize: 16,
+    color: theme.accent,
+    fontWeight: "600",
+    padding: 8,
+  },
+  calendarContainer: {
+    backgroundColor: theme.bg,
+    borderRadius: 16,
+    padding: 16,
+  },
+  monthNav: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  navArrow: {
+    fontSize: 24,
+    color: theme.text,
+    padding: 8,
+  },
+  monthText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: theme.text,
+  },
+  dayHeaders: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 8,
+  },
+  dayHeader: {
+    fontSize: 14,
+    color: theme.muted,
+    width: 40,
+    textAlign: "center",
+  },
+  calendarGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  },
+  calendarDay: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 2,
+  },
+  calendarDayText: {
+    fontSize: 16,
+    color: theme.text,
+  },
+  selectedDay: {
+    backgroundColor: theme.accent,
+    borderRadius: 20,
+  },
+  selectedDayText: {
+    color: "#0D0D0D",
+    fontWeight: "700",
   },
 });
