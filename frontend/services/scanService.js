@@ -62,7 +62,11 @@ export async function scanReceipt(token, imageFile, documentType) {
     }
     const normalizedData = data?.text || data;
 
-    if (!normalizedData || !normalizedData.scanId) {
+    if (
+      !normalizedData ||
+      typeof normalizedData.scanId !== "string" ||
+      normalizedData.scanId.trim() === ""
+    ) {
       throw new Error("Invalid scan response from server");
     }
 
