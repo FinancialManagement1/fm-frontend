@@ -1,6 +1,7 @@
 // Charts Tab - Shows Reports UI (Financial Overview)
 
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import { useFocusEffect } from "expo-router";
 import {
   View,
   Text,
@@ -58,10 +59,20 @@ export default function ChartsScreen() {
     fetchTrends(selectedPeriod);
   }, [selectedPeriod]);
 
+  // Refresh budget & summary when tab comes into focus (after setting budget elsewhere)
+  useFocusEffect(
+    useCallback(() => {
+      fetchBudget(selectedPeriod);
+      fetchSummary(selectedPeriod);
+      fetchTrends(selectedPeriod);
+    }, [selectedPeriod])
+  );
+
   // Debug budget, summary, and categories
   useEffect(() => {
     console.log("💰 Budget Data:", JSON.stringify(budget));
     console.log("💰 Budget Limit:", budget?.limit);
+    console.log("💰 Budget Amount:", budget?.amount);
   }, [budget]);
 
   useEffect(() => {
@@ -309,7 +320,7 @@ export default function ChartsScreen() {
               <Text style={styles.chartTitle}>Budget vs Actual</Text>
               <LineChart 
                 trends={trends} 
-                budgetLimit={budget?.limit ?? 0} 
+                budgetLimit={budget?.limit ?? budget?.amount ?? 0} 
               />
             </View>
           </>

@@ -29,7 +29,12 @@ export function useTransactions() {
     try {
       const token = await getToken();
       const data = await getTransactions(token, filters);
-      setTransactions(data.items || []);
+      // Map createdAt to date if date is not present (API compatibility)
+      const items = (data.items || []).map(item => ({
+        ...item,
+        date: item.date || item.createdAt || item.updatedAt
+      }));
+      setTransactions(items);
       setTotal(data.total || 0);
     } catch (err) {
       console.error("fetchTransactions error:", err);
