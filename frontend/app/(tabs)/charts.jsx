@@ -168,16 +168,19 @@ export default function ChartsScreen() {
     };
   }, [filteredTransactions]);
 
-  // Prepare pie chart data from API summary ONLY
+  // Summary card values from API
   const apiIncome = summary?.income ?? 0;
   const apiExpenses = summary?.expenses ?? 0;
   const apiBalance = summary?.balance ?? 0;
-  
-  const pieData = [
-    { name: "Income", value: apiIncome, color: theme.income },
-    { name: "Expenses", value: apiExpenses, color: theme.expense },
-    { name: "Balance", value: apiBalance > 0 ? apiBalance : 0, color: theme.accent },
-  ].filter((item) => item.value > 0);
+
+  // Pie chart shows category breakdown of expenses (not income/expense/balance)
+  const pieData = (categoryData || [])
+    .map((c) => ({
+      name: c.name,
+      value: c.value,
+      color: c.color,
+    }))
+    .filter((item) => item.value > 0);
 
   const formatCurrency = (amount) => {
     const value = amount || 0;
@@ -263,7 +266,7 @@ export default function ChartsScreen() {
 
             {pieData.length > 0 && (
               <View style={styles.chartCard}>
-                <Text style={styles.chartTitle}>Spending Distribution</Text>
+                <Text style={styles.chartTitle}>Spending by Category</Text>
                 <PieChart data={pieData} />
               </View>
             )}
