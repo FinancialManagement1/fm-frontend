@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '../hooks/useTransactions';
+import { useCurrency } from '../hooks/useCurrency';
 
 const getCategoryIcon = (name) => {
   const icons = {
@@ -48,8 +49,8 @@ const getCategoryColor = (type) => {
 
 export default function CompleteExpensesUI() {
   const { transactions, loading, error, fetchTransactions, addTransaction, editTransaction, removeTransaction, fetchCategories } = useTransactions();
+  const { currencySymbol } = useCurrency();
   
-  // Local state for categories (using Abir's hook)
   const [incomeCategories, setIncomeCategories] = useState([]);
   const [expenseCategories, setExpenseCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
@@ -74,13 +75,11 @@ export default function CompleteExpensesUI() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
 
-  // Fetch transactions and categories on component mount
   useEffect(() => {
     fetchTransactions();
     fetchAllCategories();
   }, [fetchTransactions, fetchAllCategories]);
 
-  // Calculate summary from transactions
   const summary = useMemo(() => {
     const expenses = transactions
       .filter(t => t.type === 'expense')
@@ -94,17 +93,16 @@ export default function CompleteExpensesUI() {
       balance: income - expenses
     };
   }, [transactions]);
+
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
   const [showAddIncomeForm, setShowAddIncomeForm] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   
-  // Form states
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Animation values
   const [modalAnim] = useState(new Animated.Value(height));
   const [overlayAnim] = useState(new Animated.Value(0));
 
@@ -114,7 +112,7 @@ export default function CompleteExpensesUI() {
       (activeFilter === 'expenses' && transaction.type === 'expense') ||
       (activeFilter === 'thisMonth' && new Date(transaction.date).getMonth() === new Date().getMonth());
     
-    const matchesSearch = transaction.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = transaction.title?.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
@@ -233,7 +231,7 @@ export default function CompleteExpensesUI() {
             styles.transactionAmount,
             item.type === 'income' ? styles.incomeAmount : styles.expenseAmount
           ]}>
-            {item.type === 'income' ? '+' : '-'}€{Math.abs(item.amount).toFixed(2)}
+            {item.type === 'income' ? '+' : '-'}{currencySymbol}{Math.abs(item.amount).toFixed(2)}
           </Text>
           <View style={styles.transactionActions}>
             <TouchableOpacity
@@ -278,7 +276,6 @@ export default function CompleteExpensesUI() {
           <Animated.View
             style={[styles.modalContent, { transform: [{ translateY: modalAnim }] }]}
           >
-            {/* Header */}
             <View style={styles.modalHeader}>
               <View style={[
                 styles.modalIcon,
@@ -296,13 +293,11 @@ export default function CompleteExpensesUI() {
               </Text>
             </View>
 
-            {/* Form */}
             <ScrollView style={styles.modalForm}>
-              {/* Amount Input */}
               <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>Amount (€)</Text>
+                <Text style={styles.formLabel}>Amount ({currencySymbol})</Text>
                 <View style={styles.inputContainer}>
-                  <Text style={styles.inputIcon}>€</Text>
+                  <Text style={styles.inputIcon}>{currencySymbol}</Text>
                   <TextInput
                     style={styles.input}
                     value={amount}
@@ -314,7 +309,6 @@ export default function CompleteExpensesUI() {
                 </View>
               </View>
 
-              {/* Category Grid */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Category</Text>
                 {categoriesLoading ? (
@@ -347,7 +341,6 @@ export default function CompleteExpensesUI() {
                 )}
               </View>
 
-              {/* Description Input */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Description (Optional)</Text>
                 <TextInput
@@ -359,7 +352,6 @@ export default function CompleteExpensesUI() {
                 />
               </View>
 
-              {/* Date Input */}
               <View style={styles.formGroup}>
                 <Text style={styles.formLabel}>Date</Text>
                 <TextInput
@@ -371,7 +363,6 @@ export default function CompleteExpensesUI() {
                 />
               </View>
 
-              {/* Action Buttons */}
               <View style={styles.formActions}>
                 <TouchableOpacity
                   style={styles.cancelButton}
@@ -411,7 +402,6 @@ export default function CompleteExpensesUI() {
             <Text style={styles.headerSubtitle}>Track your income and expenses</Text>
           </View>
           
-          {/* View Toggle */}
           <View style={styles.viewToggle}>
             <TouchableOpacity
               style={[
@@ -446,36 +436,33 @@ export default function CompleteExpensesUI() {
 
         {/* Summary Cards */}
         <View style={styles.summaryContainer}>
-          {/* Total Expenses */}
           <View style={[styles.summaryCard, styles.expenseCard]}>
             <View style={styles.summaryIconContainer}>
               <View style={styles.summaryIcon}>
                 <Text style={styles.summaryIconText}>↓</Text>
               </View>
             </View>
-            <Text style={styles.expenseAmount}>€{summary.totalExpenses.toFixed(2)}</Text>
+            <Text style={styles.expenseAmount}>{currencySymbol}{summary.totalExpenses.toFixed(2)}</Text>
             <Text style={styles.summaryLabel}>Expenses</Text>
           </View>
 
-          {/* Total Income */}
           <View style={[styles.summaryCard, styles.incomeCard]}>
             <View style={styles.summaryIconContainer}>
               <View style={styles.summaryIcon}>
                 <Text style={styles.summaryIconText}>↑</Text>
               </View>
             </View>
-            <Text style={styles.incomeAmount}>€{summary.totalIncome.toFixed(2)}</Text>
+            <Text style={styles.incomeAmount}>{currencySymbol}{summary.totalIncome.toFixed(2)}</Text>
             <Text style={styles.summaryLabel}>Income</Text>
           </View>
 
-          {/* Balance */}
           <View style={[styles.summaryCard, styles.balanceCard]}>
             <View style={styles.summaryIconContainer}>
               <View style={styles.summaryIcon}>
                 <Text style={styles.summaryIconText}>💰</Text>
               </View>
             </View>
-            <Text style={styles.balanceAmount}>€{Math.abs(summary.balance).toFixed(2)}</Text>
+            <Text style={styles.balanceAmount}>{currencySymbol}{Math.abs(summary.balance).toFixed(2)}</Text>
             <Text style={styles.summaryLabel}>Balance</Text>
           </View>
         </View>
@@ -566,8 +553,6 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  
-  // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -610,8 +595,6 @@ const styles = StyleSheet.create({
   toggleButtonTextActive: {
     color: '#000000',
   },
-
-  // Summary Cards
   summaryContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -676,8 +659,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9ca3af',
   },
-
-  // Search Bar
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -703,8 +684,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#ffffff',
   },
-
-  // Filter Tabs
   filterContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -733,11 +712,9 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: '#000000',
   },
-
-  // Transaction List
   transactionsContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 120, // Space for FAB
+    paddingBottom: 120,
   },
   transactionItem: {
     flexDirection: 'row',
@@ -805,8 +782,6 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 14,
   },
-
-  // Empty State
   emptyState: {
     alignItems: 'center',
     paddingVertical: 64,
@@ -826,11 +801,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9ca3af',
   },
-
-  // Floating Action Buttons
   fabContainer: {
     position: 'absolute',
-    bottom: 96, // 24 + 72 for bottom navigation
+    bottom: 96,
     right: 20,
     gap: 12,
   },
@@ -870,8 +843,6 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontWeight: 'bold',
   },
-
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -882,7 +853,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
-    paddingBottom: 80, // Safe area for bottom nav
+    paddingBottom: 80,
   },
   modalHeader: {
     flexDirection: 'row',

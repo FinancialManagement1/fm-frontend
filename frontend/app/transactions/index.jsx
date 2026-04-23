@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { useTransactions } from "../../hooks/useTransactions";
+import { useCurrency } from "../../hooks/useCurrency";
 
 const TransactionsScreen = () => {
   const router = useRouter();
@@ -25,6 +26,7 @@ const TransactionsScreen = () => {
     editTransaction,
     removeTransaction,
   } = useTransactions();
+  const { currencySymbol } = useCurrency();
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -150,7 +152,7 @@ const TransactionsScreen = () => {
           ]}
         >
           {item.type === "income" ? "+" : "-"}
-          {item.currency || "€"}
+          {currencySymbol}
           {Math.abs(item.amount).toFixed(2)}
         </Text>
         <TouchableOpacity
@@ -181,7 +183,7 @@ const TransactionsScreen = () => {
               <Text style={{ fontSize: 20 }}>↓</Text>
             </View>
             <Text style={styles.expenseAmount}>
-              €{summary.totalExpenses.toFixed(2)}
+              {currencySymbol}{summary.totalExpenses.toFixed(2)}
             </Text>
             <Text style={styles.summaryLabel}>Expenses</Text>
           </View>
@@ -195,7 +197,7 @@ const TransactionsScreen = () => {
               <Text style={{ fontSize: 20 }}>↑</Text>
             </View>
             <Text style={styles.incomeAmount}>
-              €{summary.totalIncome.toFixed(2)}
+              {currencySymbol}{summary.totalIncome.toFixed(2)}
             </Text>
             <Text style={styles.summaryLabel}>Income</Text>
           </View>
@@ -206,10 +208,10 @@ const TransactionsScreen = () => {
                 { backgroundColor: "rgba(251, 191, 36, 0.2)" },
               ]}
             >
-              <Text style={{ fontSize: 20 }}>€</Text>
+              <Text style={{ fontSize: 20 }}>{currencySymbol}</Text>
             </View>
             <Text style={styles.balanceAmount}>
-              €{summary.balance.toFixed(2)}
+              {currencySymbol}{summary.balance.toFixed(2)}
             </Text>
             <Text style={styles.summaryLabel}>Balance</Text>
           </View>

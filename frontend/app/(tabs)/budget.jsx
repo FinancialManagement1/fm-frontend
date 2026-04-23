@@ -13,11 +13,14 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { theme } from "../../constants/theme";
 import { useBudget } from "../../hooks/useBudget";
+import { useCurrency } from "../../hooks/useCurrency";
 
 export default function BudgetScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [budgetLimit, setBudgetLimit] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState(getCurrentPeriod());
@@ -36,12 +39,12 @@ export default function BudgetScreen() {
     limit,
   } = useBudget();
 
-  // Fetch when period changes
+  const { currencySymbol } = useCurrency();
+
   useEffect(() => {
     fetchBudget(selectedPeriod);
   }, [selectedPeriod]);
 
-  // Update input when budget loads
   useEffect(() => {
     if (budget?.limit > 0) {
       setBudgetLimit(String(budget.limit));
@@ -69,11 +72,11 @@ export default function BudgetScreen() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   }
 
-  const formatCurrency = (amount) => `€${amount?.toFixed(2) || "0.00"}`;
+  const formatCurrency = (amount) => `${currencySymbol}${amount?.toFixed(2) || "0.00"}`;
 
   const months = [
     "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "July", "August", "September", "October", "November", "December",
   ];
 
   const years = [2024, 2025, 2026, 2027, 2028];
@@ -86,9 +89,19 @@ export default function BudgetScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
+
+      {/* ── Header with Back Button ── */}
       <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={20} color={theme.text} />
+        </TouchableOpacity>
+
         <Text style={styles.title}>Budget</Text>
+
         <TouchableOpacity onPress={() => setIsEditing(!isEditing)}>
           <Ionicons
             name={isEditing ? "close" : "create-outline"}
@@ -99,38 +112,50 @@ export default function BudgetScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {loading && <ActivityIndicator color={theme.accent} style={{ margin: 40 }} />}
+        {loading && (
+          <ActivityIndicator color={theme.accent} style={{ margin: 40 }} />
+        )}
 
         {/* Budget Info Card */}
         <View style={styles.card}>
-          {/* Period - Clickable */}
-          <TouchableOpacity style={styles.row} onPress={() => setShowMonthPicker(true)}>
+          <TouchableOpacity
+            style={styles.row}
+            onPress={() => setShowMonthPicker(true)}
+          >
             <Ionicons name="calendar-outline" size={18} color={theme.muted} />
             <Text style={styles.period}>{selectedPeriod}</Text>
-            <Ionicons name="chevron-down" size={16} color={theme.muted} style={{ marginLeft: 4 }} />
+            <Ionicons
+              name="chevron-down"
+              size={16}
+              color={theme.muted}
+              style={{ marginLeft: 4 }}
+            />
           </TouchableOpacity>
 
-          {/* Limit */}
           <View style={styles.statRow}>
             <Text style={styles.label}>Budget Limit</Text>
             <Text style={styles.value}>{formatCurrency(limit)}</Text>
           </View>
 
-          {/* Spent */}
           <View style={styles.statRow}>
             <Text style={styles.label}>Spent</Text>
-            <Text style={[styles.value, { color: theme.expense }]}>{formatCurrency(spent)}</Text>
+            <Text style={[styles.value, { color: theme.expense }]}>
+              {formatCurrency(spent)}
+            </Text>
           </View>
 
-          {/* Remaining */}
           <View style={styles.statRow}>
             <Text style={styles.label}>Remaining</Text>
-            <Text style={[styles.value, { color: remaining < 0 ? theme.error : theme.income }]}>
+            <Text
+              style={[
+                styles.value,
+                { color: remaining < 0 ? theme.error : theme.income },
+              ]}
+            >
               {formatCurrency(remaining)}
             </Text>
           </View>
 
-          {/* Progress Bar */}
           <View style={styles.progressContainer}>
             <View style={styles.progressBg}>
               <View
@@ -138,12 +163,15 @@ export default function BudgetScreen() {
                   styles.progressFill,
                   {
                     width: `${Math.min(progressPercentage || 0, 100)}%`,
-                    backgroundColor: progressPercentage > 100 ? theme.error : theme.accent,
+                    backgroundColor:
+                      progressPercentage > 100 ? theme.error : theme.accent,
                   },
                 ]}
               />
             </View>
-            <Text style={styles.progressText}>{Math.round(progressPercentage || 0)}% used</Text>
+            <Text style={styles.progressText}>
+              {Math.round(progressPercentage || 0)}% used
+            </Text>
           </View>
         </View>
 
@@ -152,7 +180,7 @@ export default function BudgetScreen() {
           <View style={styles.card}>
             <Text style={styles.editTitle}>Set Monthly Budget</Text>
             <View style={styles.inputRow}>
-              <Text style={styles.euro}>€</Text>
+              <Text style={styles.euro}>{currencySymbol}</Text>
               <TextInput
                 style={styles.input}
                 value={budgetLimit}
@@ -173,7 +201,10 @@ export default function BudgetScreen() {
           <View style={styles.center}>
             <Ionicons name="wallet-outline" size={50} color={theme.muted} />
             <Text style={styles.noBudgetText}>No budget set</Text>
-            <TouchableOpacity style={styles.setBtn} onPress={() => setIsEditing(true)}>
+            <TouchableOpacity
+              style={styles.setBtn}
+              onPress={() => setIsEditing(true)}
+            >
               <Text style={styles.setText}>Set Budget</Text>
             </TouchableOpacity>
           </View>
@@ -208,7 +239,8 @@ export default function BudgetScreen() {
                         key={month}
                         style={[
                           styles.monthButton,
-                          selectedPeriod === `${year}-${String(index + 1).padStart(2, "0")}` &&
+                          selectedPeriod ===
+                            `${year}-${String(index + 1).padStart(2, "0")}` &&
                             styles.monthButtonActive,
                         ]}
                         onPress={() => handleMonthSelect(year, index)}
@@ -216,7 +248,8 @@ export default function BudgetScreen() {
                         <Text
                           style={[
                             styles.monthText,
-                            selectedPeriod === `${year}-${String(index + 1).padStart(2, "0")}` &&
+                            selectedPeriod ===
+                              `${year}-${String(index + 1).padStart(2, "0")}` &&
                               styles.monthTextActive,
                           ]}
                         >
@@ -244,10 +277,21 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    backgroundColor: theme.card,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: theme.border,
   },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
     color: theme.text,
   },
@@ -358,7 +402,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#0D0D0D",
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.8)",

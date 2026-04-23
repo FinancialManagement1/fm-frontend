@@ -1,8 +1,9 @@
-import { useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,29 +11,32 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useCurrency } from "../../hooks/useCurrency";
 import { useTransactions } from "../../hooks/useTransactions";
 
 export default function ExpensesScreen() {
   const {
     transactions,
     loading,
-    error,
     fetchTransactions,
-    addTransaction,
-    editTransaction,
-    removeTransaction,
   } = useTransactions();
-  const [filter, setFilter] = useState("all");
+
+  const { type } = useLocalSearchParams();
+  const [filter, setFilter] = useState(type || "all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState("list");
   const router = useRouter();
+  const { currencySymbol } = useCurrency();
 
-  // Fetch transactions on component mount
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+  useFocusEffect(
+    useCallback(() => {
+      if (type) setFilter(type);
+      const now = new Date();
+      const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+      fetchTransactions({ period });
+    }, [])
+  );
 
-  // Calculate summary from transactions
   const summary = useMemo(() => {
     const expenses = transactions
       .filter((t) => t.type === "expense")
@@ -40,7 +44,6 @@ export default function ExpensesScreen() {
     const income = transactions
       .filter((t) => t.type === "income")
       .reduce((sum, t) => sum + t.amount, 0);
-
     return {
       totalExpenses: expenses,
       totalIncome: income,
@@ -48,15 +51,17 @@ export default function ExpensesScreen() {
     };
   }, [transactions]);
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    const matchesFilter = filter === "all" || transaction.type === filter;
-    const matchesSearch =
-      transaction.description
-        ?.toLowerCase()
-        .includes(searchQuery.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
-  });
+  const filteredTransactions = transactions
+    .filter((transaction) => {
+      const matchesFilter = filter === "all" || transaction.type === filter;
+      const matchesSearch =
+        transaction.description
+          ?.toLowerCase()
+          .includes(searchQuery.toLowerCase()) ||
+        transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
   const renderTransactionItem = ({ item }) => {
     const getCategoryColor = (category) => {
@@ -109,7 +114,7 @@ export default function ExpensesScreen() {
           ]}
         >
           {item.type === "income" ? "+" : "-"}
-          {item.currency || "€"}
+          {currencySymbol}
           {Math.abs(item.amount).toFixed(2)}
         </Text>
       </TouchableOpacity>
@@ -119,15 +124,39 @@ export default function ExpensesScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.scrollView}>
+
+        {/* ── Back Button + Title ── */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={20} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>
+            {filter === "income"
+              ? "Income Transactions"
+              : filter === "expense"
+              ? "Expense Transactions"
+              : "All Transactions"}
+          </Text>
+          <View style={{ width: 42 }} />
+        </View>
+
         {/* Summary Cards */}
         <View style={styles.summaryContainer}>
           <View style={[styles.summaryCard, styles.expenseCard]}>
             <Text style={styles.summaryLabel}>Expenses</Text>
-            <Text style={styles.expenseAmount}>€{summary.totalExpenses}</Text>
+            <Text style={styles.expenseAmount}>
+              {currencySymbol}{summary.totalExpenses.toFixed(2)}
+            </Text>
           </View>
           <View style={[styles.summaryCard, styles.incomeCard]}>
             <Text style={styles.summaryLabel}>Income</Text>
-            <Text style={styles.incomeAmount}>€{summary.totalIncome}</Text>
+            <Text style={styles.incomeAmount}>
+              {currencySymbol}{summary.totalIncome.toFixed(2)}
+            </Text>
           </View>
           <View style={[styles.summaryCard, styles.balanceCard]}>
             <Text style={styles.summaryLabel}>Balance</Text>
@@ -139,7 +168,7 @@ export default function ExpensesScreen() {
                   : styles.expenseAmount,
               ]}
             >
-              €{Math.abs(summary.balance)}
+              {currencySymbol}{Math.abs(summary.balance).toFixed(2)}
             </Text>
           </View>
         </View>
@@ -230,13 +259,29 @@ export default function ExpensesScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Loading */}
+        {loading && (
+          <View style={{ alignItems: "center", paddingVertical: 20 }}>
+            <Text style={{ color: "#9ca3af" }}>Loading...</Text>
+          </View>
+        )}
+
         {/* Transactions List */}
         <FlatList
           data={filteredTransactions}
           renderItem={renderTransactionItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.id.toString()}
           scrollEnabled={false}
           style={styles.transactionsList}
+          ListEmptyComponent={
+            !loading ? (
+              <View style={{ alignItems: "center", paddingTop: 40 }}>
+                <Text style={{ color: "#9ca3af", fontSize: 16 }}>
+                  No {filter === "all" ? "" : filter} transactions found
+                </Text>
+              </View>
+            ) : null
+          }
         />
       </ScrollView>
     </SafeAreaView>
@@ -251,51 +296,30 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 48,
+    paddingTop: 16,
     paddingBottom: 20,
   },
   header: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 20,
-  },
-  headerLeft: {
-    flex: 1,
+    marginTop: 8,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: 18,
+    fontWeight: "700",
     color: "#ffffff",
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#9ca3af",
-    marginTop: 4,
-  },
-  viewToggle: {
-    flexDirection: "row",
+  backBtn: {
+    width: 42,
+    height: 42,
     backgroundColor: "#18181b",
-    padding: 4,
+    borderWidth: 1,
+    borderColor: "#27272a",
     borderRadius: 12,
-    gap: 2,
-  },
-  toggleSquare: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
-    justifyContent: "center",
     alignItems: "center",
-  },
-  toggleSquareActive: {
-    backgroundColor: "#fbbf24",
-  },
-  toggleIcon: {
-    fontSize: 16,
-    color: "#9ca3af",
-  },
-  toggleIconActive: {
-    color: "#000000",
+    justifyContent: "center",
   },
   summaryContainer: {
     flexDirection: "row",
@@ -345,7 +369,6 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     marginBottom: 20,
-    position: "relative",
   },
   searchInput: {
     backgroundColor: "#18181b",
@@ -392,20 +415,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: 20,
   },
-  menuButton: {
+  placeholderLeft: {
     width: 48,
-    height: 48,
-    backgroundColor: "#18181b",
-    borderWidth: 1,
-    borderColor: "#27272a",
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  menuButtonText: {
-    fontSize: 20,
-    color: "#9ca3af",
-    fontWeight: "bold",
   },
   calendarNavButton: {
     width: 48,
@@ -423,7 +434,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   transactionsList: {
-    marginBottom: 112, // Safe area bottom for navigation
+    marginBottom: 112,
   },
   transactionItem: {
     flexDirection: "row",
@@ -463,20 +474,5 @@ const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 16,
     fontWeight: "bold",
-  },
-  calendarButtonContainer: {
-    marginBottom: 20,
-  },
-  calendarButton: {
-    backgroundColor: "#fbbf24",
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  calendarButtonText: {
-    color: "#000000",
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

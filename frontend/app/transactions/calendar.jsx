@@ -1,25 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   SafeAreaView,
-  ScrollView 
+  ScrollView
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTransactions } from '../../hooks/useTransactions';
+import { useCurrency } from '../../hooks/useCurrency';
 
 const CalendarScreen = () => {
   const router = useRouter();
   const { transactions, fetchTransactions } = useTransactions();
+  const { currencySymbol } = useCurrency();
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // Fetch transactions on mount
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
-  
+
   const getDaysInMonth = (date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
   };
@@ -32,31 +34,31 @@ const CalendarScreen = () => {
     const daysInMonth = getDaysInMonth(currentDate);
     const firstDay = getFirstDayOfMonth(currentDate);
     const days = [];
-    
+
     // Helper to check if a day has transactions
     const getDayTransactions = (day) => {
       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       return transactions.filter(t => t.date === dateStr);
     };
-    
+
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
       days.push(
         <View key={`empty-${i}`} style={styles.emptyDayCell} />
       );
     }
-    
+
     // Days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dayTransactions = getDayTransactions(day);
       const hasTransaction = dayTransactions.length > 0;
       const hasIncome = dayTransactions.some(t => t.type === 'income');
       const hasExpense = dayTransactions.some(t => t.type === 'expense');
-      
-      const isToday = day === new Date().getDate() && 
-                     currentDate.getMonth() === new Date().getMonth() && 
-                     currentDate.getFullYear() === new Date().getFullYear();
-      
+
+      const isToday = day === new Date().getDate() &&
+        currentDate.getMonth() === new Date().getMonth() &&
+        currentDate.getFullYear() === new Date().getFullYear();
+
       days.push(
         <TouchableOpacity
           key={day}
@@ -82,10 +84,10 @@ const CalendarScreen = () => {
         </TouchableOpacity>
       );
     }
-    
+
     return days;
   };
-  
+
   const navigateMonth = (direction) => {
     const newDate = new Date(currentDate);
     if (direction === 'prev') {
@@ -106,7 +108,7 @@ const CalendarScreen = () => {
       <ScrollView style={styles.scrollView}>
         {/* Header with Back Button */}
         <View style={styles.header}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
@@ -118,7 +120,7 @@ const CalendarScreen = () => {
 
         {/* Month Navigation */}
         <View style={styles.monthNavigation}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.navButton}
             onPress={() => navigateMonth('prev')}
           >
@@ -127,7 +129,7 @@ const CalendarScreen = () => {
           <Text style={styles.monthYear}>
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.navButton}
             onPress={() => navigateMonth('next')}
           >
@@ -143,7 +145,7 @@ const CalendarScreen = () => {
               <Text key={day} style={styles.dayHeaderText}>{day}</Text>
             ))}
           </View>
-          
+
           {/* Calendar Days */}
           <View style={styles.calendarGrid}>
             {renderCalendarDays()}
@@ -152,18 +154,41 @@ const CalendarScreen = () => {
 
         {/* Transaction Summary for Selected Month */}
         <View style={styles.summaryContainer}>
-          <Text style={styles.summaryTitle}>March 2026 Summary</Text>
+          <Text style={styles.summaryTitle}>
+            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()} Summary
+          </Text>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Transactions:</Text>
-            <Text style={styles.summaryValue}>6</Text>
+            <Text style={styles.summaryValue}>
+              {transactions.filter(t => {
+                const period = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                return t.date?.startsWith(period);
+              }).length}
+            </Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Spent:</Text>
-            <Text style={[styles.summaryValue, styles.expenseText]}>€4,350</Text>
+            <Text style={[styles.summaryValue, styles.expenseText]}>
+              {currencySymbol}{transactions
+                .filter(t => {
+                  const period = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                  return t.date?.startsWith(period) && t.type === 'expense';
+                })
+                .reduce((sum, t) => sum + t.amount, 0)
+                .toFixed(2)}
+            </Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Income:</Text>
-            <Text style={[styles.summaryValue, styles.incomeText]}>€3,000</Text>
+            <Text style={[styles.summaryValue, styles.incomeText]}>
+              {currencySymbol}{transactions
+                .filter(t => {
+                  const period = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                  return t.date?.startsWith(period) && t.type === 'income';
+                })
+                .reduce((sum, t) => sum + t.amount, 0)
+                .toFixed(2)}
+            </Text>
           </View>
         </View>
 
@@ -191,7 +216,7 @@ const styles = StyleSheet.create({
     paddingTop: 48,
     paddingBottom: 20,
   },
-  
+
   // Header with Back Button
   header: {
     flexDirection: 'row',
@@ -222,7 +247,7 @@ const styles = StyleSheet.create({
   placeholder: {
     width: 40,
   },
-  
+
   calendarContainer: {
     backgroundColor: 'rgba(251, 191, 36, 0.05)',
     borderWidth: 1,

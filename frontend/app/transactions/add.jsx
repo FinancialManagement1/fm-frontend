@@ -15,13 +15,15 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTransactions } from '../../hooks/useTransactions';
 import { useCategories } from '../../hooks/useCategories';
+import { useCurrency } from '../../hooks/useCurrency';
 
 export default function AddTransactionScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const type = params?.type || 'expense'; // Default to expense if no type provided
+  const type = params?.type || 'expense';
   const { addTransaction } = useTransactions();
-  
+  const { currencySymbol } = useCurrency();
+
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -32,24 +34,20 @@ export default function AddTransactionScreen() {
 
   const isIncome = type === 'income';
 
-  // Use API categories instead of hardcoded
   const { incomeCategories, expenseCategories, fetchAllCategories } = useCategories();
 
-  // Fetch categories on mount
   useEffect(() => {
     fetchAllCategories();
   }, []);
 
-  // Get categories based on type
   const categories = isIncome ? incomeCategories : expenseCategories;
 
-  // Default icon/color for API categories (since API doesn't provide them)
   const getCategoryIcon = (name) => {
     const icons = {
       'Salary': '💰', 'Freelance': '💻', 'Business': '💼', 'Investment': '📈',
       'Gift': '🎁', 'Other': '💵', 'Food': '🍽️', 'Transport': '🚌',
       'Shopping': '🛍️', 'Bills': '💡', 'Entertainment': '🎬', 'Health': '❤️',
-      'Education': '📚'
+      'Education': '📚', 'Insurance': '🛡️', 'Mortgage': '🏠',
     };
     return icons[name] || '📦';
   };
@@ -60,13 +58,12 @@ export default function AddTransactionScreen() {
       'Investment': '#8b5cf6', 'Gift': '#ec4899', 'Other': '#6b7280',
       'Food': '#22c55e', 'Transport': '#3b82f6', 'Shopping': '#f59e0b',
       'Bills': '#ef4444', 'Entertainment': '#8b5cf6', 'Health': '#f43f5e',
-      'Education': '#06b6d4'
+      'Education': '#06b6d4', 'Insurance': '#0ea5e9', 'Mortgage': '#a855f7',
     };
     return colors[name] || '#9ca3af';
   };
 
   const handleSave = async () => {
-    // Validation
     if (!amount || parseFloat(amount) <= 0) {
       Alert.alert('Error', 'Please enter a valid amount');
       return;
@@ -88,14 +85,13 @@ export default function AddTransactionScreen() {
         currency: 'EUR',
         category,
         description: description || undefined,
-        date
+        date,
       };
-      
-      
+
       await addTransaction(transactionData);
-      
+
       Alert.alert('Success', `${isIncome ? 'Income' : 'Expense'} added successfully!`, [
-        { text: 'OK', onPress: () => router.back() }
+        { text: 'OK', onPress: () => router.push('/(tabs)/expenses') }
       ]);
     } catch (error) {
       Alert.alert('Error', 'Failed to add transaction. Please try again.');
@@ -108,20 +104,31 @@ export default function AddTransactionScreen() {
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
+
+          {/* ── Header with Save button on top right ── */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
               <Text style={styles.backButtonText}>←</Text>
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Add {isIncome ? 'Income' : 'Expense'}</Text>
-            <View style={styles.placeholder} />
+            <Text style={styles.headerTitle}>
+              Add {isIncome ? 'Income' : 'Expense'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.saveTopBtn, loading && styles.saveTopBtnDisabled]}
+              onPress={handleSave}
+              disabled={loading}
+            >
+              <Text style={styles.saveTopBtnText}>
+                {loading ? '...' : 'Save'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* Amount Input */}
           <View style={styles.inputSection}>
             <Text style={styles.sectionTitle}>Amount</Text>
             <View style={styles.amountContainer}>
-              <Text style={styles.currencySymbol}>€</Text>
+              <Text style={styles.currencySymbol}>{currencySymbol}</Text>
               <TextInput
                 style={styles.amountInput}
                 placeholder="0.00"
@@ -142,9 +149,9 @@ export default function AddTransactionScreen() {
                   key={`${cat.name}-${index}`}
                   style={[
                     styles.categoryCard,
-                    category === cat.name && { 
+                    category === cat.name && {
                       backgroundColor: `${getCategoryColor(cat.name)}20`,
-                      borderColor: getCategoryColor(cat.name)
+                      borderColor: getCategoryColor(cat.name),
                     }
                   ]}
                   onPress={() => setCategory(cat.name)}
@@ -166,15 +173,15 @@ export default function AddTransactionScreen() {
           {/* Date Input */}
           <View style={styles.inputSection}>
             <Text style={styles.sectionTitle}>Date</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dateInputContainer}
               onPress={() => setShowDatePicker(true)}
             >
               <Text style={styles.dateInputText}>
-                {date ? new Date(date).toLocaleDateString('en-GB', { 
-                  day: '2-digit', 
-                  month: 'short', 
-                  year: 'numeric' 
+                {date ? new Date(date).toLocaleDateString('en-GB', {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric'
                 }) : 'Select Date'}
               </Text>
               <Text style={styles.calendarIcon}>📅</Text>
@@ -195,16 +202,8 @@ export default function AddTransactionScreen() {
             />
           </View>
 
-          {/* Save Button */}
-          <TouchableOpacity
-            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
-            onPress={handleSave}
-            disabled={loading}
-          >
-            <Text style={styles.saveButtonText}>
-              {loading ? 'Saving...' : `Save ${isIncome ? 'Income' : 'Expense'}`}
-            </Text>
-          </TouchableOpacity>
+          <View style={{ height: 40 }} />
+
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -222,7 +221,7 @@ export default function AddTransactionScreen() {
                 <Text style={styles.modalCloseButton}>✕</Text>
               </TouchableOpacity>
               <Text style={styles.modalTitle}>Select Date</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => {
                   const year = selectedDate.getFullYear();
                   const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
@@ -237,9 +236,8 @@ export default function AddTransactionScreen() {
 
             {/* Calendar */}
             <View style={styles.calendarContainer}>
-              {/* Month Navigation */}
               <View style={styles.monthNav}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     const newDate = new Date(selectedDate);
                     newDate.setMonth(newDate.getMonth() - 1);
@@ -251,7 +249,7 @@ export default function AddTransactionScreen() {
                 <Text style={styles.monthText}>
                   {selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     const newDate = new Date(selectedDate);
                     newDate.setMonth(newDate.getMonth() + 1);
@@ -262,26 +260,22 @@ export default function AddTransactionScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Day Headers */}
               <View style={styles.dayHeaders}>
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
                   <Text key={index} style={styles.dayHeader}>{day}</Text>
                 ))}
               </View>
 
-              {/* Calendar Grid */}
               <View style={styles.calendarGrid}>
                 {(() => {
                   const daysInMonth = new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 0).getDate();
                   const firstDay = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1).getDay();
                   const days = [];
-                  
-                  // Empty cells
+
                   for (let i = 0; i < firstDay; i++) {
                     days.push(<View key={`empty-${i}`} style={styles.calendarDay} />);
                   }
-                  
-                  // Day cells
+
                   for (let day = 1; day <= daysInMonth; day++) {
                     const isSelected = day === selectedDate.getDate();
                     days.push(
@@ -347,8 +341,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#ffffff',
   },
-  placeholder: {
-    width: 40,
+  saveTopBtn: {
+    backgroundColor: '#fbbf24',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 12,
+    minWidth: 60,
+    alignItems: 'center',
+  },
+  saveTopBtnDisabled: {
+    backgroundColor: '#374151',
+  },
+  saveTopBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#000000',
   },
   inputSection: {
     marginBottom: 32,
@@ -444,7 +451,6 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -533,21 +539,5 @@ const styles = StyleSheet.create({
   selectedDayText: {
     color: '#000000',
     fontWeight: 'bold',
-  },
-  saveButton: {
-    backgroundColor: '#fbbf24',
-    borderRadius: 16,
-    paddingVertical: 20,
-    alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  saveButtonDisabled: {
-    backgroundColor: '#374151',
-  },
-  saveButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#000000',
   },
 });

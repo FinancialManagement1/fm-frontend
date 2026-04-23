@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { useCategories } from '../hooks/useCategories';
+import { useCurrency } from '../hooks/useCurrency';
 
 const TransactionForm = ({
   initialData = {},
@@ -29,6 +30,7 @@ const TransactionForm = ({
   const [loading, setLoading] = useState(false);
 
   const isIncome = transactionType === 'income';
+  const { currencySymbol } = useCurrency();
 
   // Use API categories instead of hardcoded
   const { incomeCategories, expenseCategories, fetchAllCategories } = useCategories();
@@ -203,7 +205,7 @@ const TransactionForm = ({
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Amount</Text>
         <View style={styles.amountContainer}>
-          <Text style={styles.currencySymbol}>€</Text>
+          <Text style={styles.currencySymbol}>{currencySymbol}</Text>
           <TextInput
             style={styles.amountInput}
             placeholder="0.00"

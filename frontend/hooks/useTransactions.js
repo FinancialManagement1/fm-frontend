@@ -23,7 +23,7 @@ export function useTransactions() {
   };
 
   // ── Fetch all transactions ──
-  const fetchTransactions = useCallback(async (filters = {}) => {
+  const fetchTransactions = async (filters = {}) => {
     setLoading(true);
     setError(null);
     try {
@@ -37,7 +37,7 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
   // ── Create transaction ──
   const addTransaction = useCallback(async (transactionData) => {

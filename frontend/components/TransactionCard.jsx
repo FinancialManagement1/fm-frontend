@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useCurrency } from '../hooks/useCurrency';
 
 const TransactionCard = ({ transaction }) => {
+  const { currencySymbol } = useCurrency();
   return (
     <View style={styles.container}>
       <View style={styles.leftContent}>
@@ -15,7 +17,7 @@ const TransactionCard = ({ transaction }) => {
         styles.amount,
         transaction.type === 'income' ? styles.incomeAmount : styles.expenseAmount
       ]}>
-        {transaction.type === 'income' ? '+' : ''}${Math.abs(transaction.amount)}
+        {transaction.type === 'income' ? '+' : ''}{currencySymbol}{Math.abs(transaction.amount)}
       </Text>
     </View>
   );

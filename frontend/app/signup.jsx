@@ -16,7 +16,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../constants/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { registerUser } from "../services/authService";
+
 
 // ── Country List ──
 const COUNTRIES = [
@@ -171,6 +173,9 @@ export default function SignupScreen() {
       setLoading(true);
 
       const response = await registerUser(payload);
+
+      await AsyncStorage.setItem("currency", selectedCurrency?.code || "EUR");
+      await AsyncStorage.setItem("currencySymbol", selectedCurrency?.symbol || "€");
 
       Alert.alert(
         "Success",

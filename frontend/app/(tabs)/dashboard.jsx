@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../constants/theme";
 import { getDashboardSummary } from "../../services/dashboardService";
+import { useCurrency } from "../../hooks/useCurrency";
 
 const MOCK_DATA = {
   userName: "User",
@@ -89,8 +90,8 @@ export default function DashboardScreen() {
   const [data, setData] = useState(MOCK_DATA);
   const [loading, setLoading] = useState(true);
 
-  const currencySymbol = data.currency === "EUR" ? "€" : "$";
-
+  const { currencySymbol } = useCurrency();
+  
   const safeBudget = {
     ...data.monthlyBudget,
     limit: data.monthlyBudget.limit > 0 ? data.monthlyBudget.limit : 5000,

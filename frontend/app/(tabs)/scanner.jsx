@@ -18,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { theme } from "../../constants/theme";
 import { useCategories } from "../../hooks/useCategories";
+import { useCurrency } from "../../hooks/useCurrency";
 
 export default function ScannerScreen() {
   const insets = useSafeAreaInsets();
@@ -57,6 +58,8 @@ export default function ScannerScreen() {
   const [manualCategory, setManualCategory] = useState(null);
   const { incomeCategories, expenseCategories, fetchAllCategories } =
     useCategories();
+
+  const { currencySymbol } = useCurrency();
 
   useEffect(() => {
     fetchAllCategories();
@@ -311,7 +314,7 @@ export default function ScannerScreen() {
         <Text style={styles.successSubtext}>Review the details below</Text>
       </View>
 
-      
+
 
       {/* Extracted Details */}
       <View style={styles.detailsContainer}>
@@ -363,8 +366,9 @@ export default function ScannerScreen() {
                   }}
                 >
                   <Text style={styles.amountText}>
-                    ${selectedAmount || scanData.amount}
+                    {currencySymbol}{selectedAmount || scanData.amount}
                   </Text>
+
                   <Ionicons name="chevron-down" size={16} color={theme.text} />
                 </TouchableOpacity>
                 {showAmountOptions &&
@@ -377,7 +381,7 @@ export default function ScannerScreen() {
                         setShowAmountOptions(false);
                       }}
                     >
-                      <Text style={styles.dropdownItemText}>${amt}</Text>
+                      <Text style={styles.dropdownItemText}>{currencySymbol}{amt}</Text>
                     </TouchableOpacity>
                   ))}
               </View>
@@ -474,10 +478,10 @@ export default function ScannerScreen() {
             <Text style={[styles.fieldInput, { paddingVertical: 0 }]}>
               {scanData.date
                 ? new Date(scanData.date).toLocaleDateString("en-GB", {
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric",
-                  })
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })
                 : "Select Date"}
             </Text>
             {scanData.confidence?.date && (

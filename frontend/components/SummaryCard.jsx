@@ -1,7 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { useCurrency } from '../hooks/useCurrency';
 
 const SummaryCard = ({ title, amount, type = 'neutral' }) => {
+  const { currencySymbol } = useCurrency();
+
   const getAmountStyle = () => {
     switch (type) {
       case 'expense':
@@ -16,7 +19,7 @@ const SummaryCard = ({ title, amount, type = 'neutral' }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={[styles.amount, getAmountStyle()]}>${amount}</Text>
+      <Text style={[styles.amount, getAmountStyle()]}>{currencySymbol}{amount}</Text>
     </View>
   );
 };
